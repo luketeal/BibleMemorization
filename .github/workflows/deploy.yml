@@ -41,6 +41,23 @@ jobs:
       - name: Unit tests
         run: dotnet test tests/BibleMemorization.Core.Tests --no-build -c Release --verbosity normal
 
+      # Locally the container already has a matching Chromium and the fixture
+      # points straight at it; CI has no such browser, so install one here.
+      - name: Install Playwright browsers
+        run: pwsh tests/BibleMemorization.E2E/bin/Release/net10.0/playwright.ps1 install chromium --with-deps
+
+      - name: End-to-end tests
+        run: dotnet test tests/BibleMemorization.E2E --no-build -c Release --verbosity normal
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-artifacts
+          path: artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Publish
         run: dotnet publish src/BibleMemorization.App -c Release -o dist
 
