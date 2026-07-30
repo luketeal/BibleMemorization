@@ -132,4 +132,95 @@ public class RecallScorerTests
         Assert.False(RecallScorer.ScoreSingleWord(passage, 0, "16"));
         Assert.False(RecallScorer.ScoreSingleWord(passage, 99, "anything"));
     }
+
+    // ---- Filling in specific blanks ----
+
+    [Fact]
+    public void Blank_answers_are_scored_against_the_blank_they_were_typed_into()
+    {
+        var passage = Passage();
+        var tested = new[] { 1, 5 }; // "God" and "world"
+
+        var result = RecallScorer.ScoreBlanks(passage, tested, new Dictionary<int, string>
+        {
+            [1] = "God",
+            [5] = "earth",
+        });
+
+        Assert.Equal(RecallOutcome.Correct, result.Tokens.Single(t => t.TokenIndex == 1).Outcome);
+
+        var wrong = result.Tokens.Single(t => t.TokenIndex == 5);
+        Assert.Equal(RecallOutcome.Wrong, wrong.Outcome);
+        Assert.Equal("world", wrong.Expected);
+        Assert.Equal("earth", wrong.Attempted);
+    }
+
+    /// <summary>
+    /// The bug this method exists to prevent. Alignment absorbs shifts, which cannot
+    /// happen when each answer was typed into a known gap - so a wrong answer used
+    /// to pair with a later blank and be reported against a word the user never
+    /// typed into.
+    /// </summary>
+    [Fact]
+    public void A_wrong_answer_never_slides_onto_a_different_blank()
+    {
+        var passage = Passage("For God so loved the world");
+        var tested = new[] { 1, 5 };
+
+        var result = RecallScorer.ScoreBlanks(passage, tested, new Dictionary<int, string>
+        {
+            [5] = "earth",
+        });
+
+        // "God" was left blank, so it is missing - not matched against "earth".
+        var god = result.Tokens.Single(t => t.TokenIndex == 1);
+        Assert.Equal(RecallOutcome.Missing, god.Outcome);
+        Assert.Null(god.Attempted);
+
+        var world = result.Tokens.Single(t => t.TokenIndex == 5);
+        Assert.Equal(RecallOutcome.Wrong, world.Outcome);
+        Assert.Equal("earth", world.Attempted);
+    }
+
+    [Fact]
+    public void An_empty_blank_counts_as_missing()
+    {
+        var passage = Passage();
+
+        var result = RecallScorer.ScoreBlanks(passage, [1], new Dictionary<int, string> { [1] = "   " });
+
+        Assert.Equal(RecallOutcome.Missing, result.Tokens.Single().Outcome);
+    }
+
+    [Fact]
+    public void Blank_answers_forgive_case_and_punctuation()
+    {
+        var passage = Passage();
+
+        var result = RecallScorer.ScoreBlanks(passage, [5], new Dictionary<int, string> { [5] = "WORLD." });
+
+        Assert.True(result.IsPerfect);
+    }
+
+    [Fact]
+    public void Blank_scoring_never_reports_extra_words()
+    {
+        var passage = Passage();
+
+        var result = RecallScorer.ScoreBlanks(passage, [1], new Dictionary<int, string> { [1] = "many words here" });
+
+        // There is nowhere for an extra word to go: one gap takes one answer.
+        Assert.Empty(result.ExtraWords);
+        Assert.Equal(RecallOutcome.Wrong, result.Tokens.Single().Outcome);
+    }
+
+    [Fact]
+    public void Blank_results_come_back_in_passage_order()
+    {
+        var passage = Passage();
+
+        var result = RecallScorer.ScoreBlanks(passage, [5, 1], new Dictionary<int, string>());
+
+        Assert.Equal([1, 5], result.Tokens.Select(t => t.TokenIndex));
+    }
 }

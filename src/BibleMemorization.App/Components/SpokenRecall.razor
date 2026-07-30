@@ -1,0 +1,171 @@
+@implements IDisposable
+@inject ISpeechRecognizer Recognizer
+@inject AppMode Mode
+
+<div class="spoken-recall" data-testid="spoken-recall">
+    @if (_supportChecked && !_isSupported)
+    {
+        <div class="alert alert-warning" data-testid="speech-unsupported">
+            <strong>Speaking isn't available in this browser.</strong>
+            Speech recognition works in Chrome, Edge and Safari, but Firefox has no
+            support for it. Writing the passage out works everywhere.
+        </div>
+    }
+    else
+    {
+        <p class="field-hint">
+            Recite the whole passage aloud. Words are matched as you go, so pauses are fine.
+        </p>
+
+        <div class="toolbar">
+            <button class="btn @(Recognizer.IsListening ? "btn-danger" : "btn-primary")"
+                    @onclick="ToggleAsync" data-testid="speak-toggle">
+                @(Recognizer.IsListening ? "Stop and score me" : "Start speaking")
+            </button>
+
+            @if (_heard.Length > 0)
+            {
+                <button class="btn btn-link" @onclick="Reset" data-testid="speak-reset">Start over</button>
+            }
+        </div>
+
+        @if (Recognizer.IsListening)
+        {
+            <p class="listening-indicator" data-testid="listening-indicator">
+                Listening&hellip;@(_interim.Length > 0 ? $" \"{_interim}\"" : string.Empty)
+            </p>
+        }
+
+        @if (_heard.Length > 0)
+        {
+            <blockquote class="heard-text" data-testid="heard-text">@_heard</blockquote>
+        }
+
+        @if (Mode.IsLive)
+        {
+            <p class="field-hint">Your browser may send audio to its speech service to transcribe it.</p>
+        }
+    }
+
+    @if (_error is not null)
+    {
+        <div class="alert alert-danger" data-testid="speech-error">@_error</div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public TokenizedPassage Expected { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<int> TestedIndices { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<RecallResult> OnResult { get; set; }
+
+    private string _heard = string.Empty;
+    private string _interim = string.Empty;
+    private string? _error;
+    private bool _isSupported;
+    private bool _supportChecked;
+
+    protected override void OnInitialized()
+    {
+        Recognizer.TranscriptReceived += OnTranscript;
+        Recognizer.Ended += OnEnded;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        _isSupported = Recognizer is WebSpeechRecognizer web
+            ? await web.ProbeSupportAsync()
+            : Recognizer.IsSupported;
+
+        _supportChecked = true;
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        Recognizer.TranscriptReceived -= OnTranscript;
+        Recognizer.Ended -= OnEnded;
+
+        if (Recognizer.IsListening)
+        {
+            _ = Recognizer.StopAsync();
+        }
+    }
+
+    private async Task ToggleAsync()
+    {
+        _error = null;
+
+        if (Recognizer.IsListening)
+        {
+            await Recognizer.StopAsync();
+            await ScoreAsync();
+        }
+        else
+        {
+            Reset();
+            await Recognizer.StartAsync();
+        }
+    }
+
+    private void Reset()
+    {
+        _heard = string.Empty;
+        _interim = string.Empty;
+    }
+
+    private void OnTranscript(SpeechTranscript transcript)
+    {
+        if (transcript.IsFinal)
+        {
+            // Only committed text accumulates. Interim guesses get revised, so
+            // appending them would duplicate words.
+            _heard = string.IsNullOrEmpty(_heard) ? transcript.Text : $"{_heard} {transcript.Text}";
+            _interim = string.Empty;
+        }
+        else
+        {
+            _interim = transcript.Text;
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnEnded(string? error)
+    {
+        _interim = string.Empty;
+
+        if (error is not null)
+        {
+            _error = $"Speech stopped: {error}";
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Scores against the whole passage when everything is hidden, and against just
+    /// the hidden words otherwise — reciting aloud fills the blanks in context, so
+    /// the visible words are spoken too and would otherwise count as extras.
+    /// </summary>
+    private async Task ScoreAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_heard))
+        {
+            _error = "Nothing was heard. Check your microphone and try again.";
+            return;
+        }
+
+        var result = RecallScorer.Score(Expected, Expected.WordIndices, _heard);
+        await OnResult.InvokeAsync(result);
+    }
+}

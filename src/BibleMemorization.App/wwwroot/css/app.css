@@ -314,3 +314,182 @@ code {
     border: 1px solid #ced4da;
     border-radius: 0.25rem;
 }
+
+/* ---- Practice ---- */
+.technique-picker {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin: 0.75rem 0 0.25rem;
+}
+
+.mode-tabs {
+    display: flex;
+    gap: 0.25rem;
+    border-bottom: 2px solid #dee2e6;
+    margin: 1rem 0;
+}
+
+.mode-tab {
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    color: #495057;
+    cursor: pointer;
+    margin-bottom: -2px;
+}
+
+.mode-tab.active {
+    color: #0d6efd;
+    border-bottom-color: #0d6efd;
+    font-weight: 600;
+}
+
+.passage-view {
+    font-size: 1.25rem;
+    line-height: 2.4;
+    padding: 1.25rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    background: #fff;
+    white-space: pre-wrap;
+    max-width: 46rem;
+}
+
+.pv-word { white-space: nowrap; }
+
+.pv-punct { color: #212529; }
+
+.pv-visible,
+.pv-visible-static {
+    background: none;
+    border: none;
+    padding: 0 0.05em;
+    font: inherit;
+    color: #212529;
+    border-radius: 0.2rem;
+}
+
+.pv-visible { cursor: default; }
+
+.interactive .pv-visible { cursor: pointer; }
+
+.interactive .pv-visible:hover {
+    background: #ffe69c;
+    outline: 2px solid #ffda6a;
+}
+
+/* A blank keeps the width of the word it hides, so its length still cues recall. */
+.pv-blank {
+    display: inline-block;
+    height: 1.35em;
+    vertical-align: baseline;
+    border: none;
+    border-bottom: 2px solid #0d6efd;
+    background: #eef4ff;
+    border-radius: 0.15rem 0.15rem 0 0;
+    padding: 0;
+    cursor: default;
+}
+
+.interactive .pv-blank { cursor: pointer; }
+
+.interactive .pv-blank:hover { background: #cfe2ff; }
+
+.pv-hint {
+    display: inline-block;
+    border-bottom: 2px solid #0d6efd;
+    background: #eef4ff;
+    padding: 0 0.2em;
+    border-radius: 0.15rem 0.15rem 0 0;
+    color: #0a58ca;
+    font-weight: 600;
+}
+
+.pv-input {
+    display: inline-block;
+    font: inherit;
+    font-size: 0.95em;
+    padding: 0 0.2em;
+    border: none;
+    border-bottom: 2px solid #0d6efd;
+    background: #f8fbff;
+    text-align: center;
+}
+
+.pv-input:focus {
+    outline: 2px solid #0d6efd;
+    background: #fff;
+}
+
+.pv-input-correct { border-bottom-color: #198754; background: #d1e7dd; }
+
+.pv-input-wrong { border-bottom-color: #dc3545; background: #f8d7da; }
+
+.pv-correct .pv-visible,
+.pv-correct .pv-visible-static { background: #d1e7dd; }
+
+.pv-wrong .pv-visible,
+.pv-wrong .pv-visible-static { background: #f8d7da; text-decoration: underline wavy #dc3545; }
+
+.pv-missing .pv-visible,
+.pv-missing .pv-visible-static { background: #fff3cd; color: #664d03; }
+
+/* ---- Results ---- */
+.results-panel {
+    margin-top: 1.5rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+    background: #fbfbfb;
+}
+
+.results-panel h2 { font-size: 1.25rem; }
+
+.results-perfect { color: #146c43; font-weight: 600; }
+
+.results-legend {
+    list-style: none;
+    display: flex;
+    gap: 1rem;
+    padding: 0;
+    margin: 0.75rem 0;
+    font-size: 0.85rem;
+    color: #495057;
+    flex-wrap: wrap;
+}
+
+.results-legend .swatch {
+    display: inline-block;
+    width: 0.9rem;
+    height: 0.9rem;
+    border-radius: 0.2rem;
+    vertical-align: middle;
+    margin-right: 0.25rem;
+}
+
+.results-legend .pv-correct { background: #d1e7dd; }
+.results-legend .pv-wrong { background: #f8d7da; }
+.results-legend .pv-missing { background: #fff3cd; }
+
+.history-panel { margin-top: 1.5rem; max-width: 30rem; }
+
+.history-panel h2 { font-size: 1.05rem; }
+
+.history-panel ul { padding-left: 1.1rem; color: #495057; }
+
+/* ---- Spoken recall ---- */
+.listening-indicator { color: #b02a37; font-weight: 600; }
+
+.heard-text {
+    border-left: 3px solid #ced4da;
+    padding-left: 1rem;
+    color: #495057;
+    font-style: italic;
+}
+
+@media (max-width: 640px) {
+    .passage-view { font-size: 1.1rem; line-height: 2.2; padding: 0.75rem; }
+}

@@ -1,0 +1,99 @@
+@using System.Globalization
+
+@*
+    Renders whatever DisplayTokens a technique produced. It knows nothing about
+    which technique made them, which is what keeps techniques pluggable.
+*@
+
+<div class="passage-view @(Interactive ? "interactive" : null)" data-testid="passage-view">
+    @foreach (var token in Tokens)
+    {
+        @* Whitespace between tokens has to survive, or the passage runs together. *@
+        @token.Leading
+
+        @if (!token.IsWord)
+        {
+            <span class="pv-punct">@token.Text@token.Suffix</span>
+        }
+        else
+        {
+            <span class="pv-word @OutcomeClass(token.TokenIndex)">
+                @if (token.Prefix.Length > 0)
+                {
+                    <span class="pv-punct">@token.Prefix</span>
+                }
+
+                @if (token.IsBlank && token.Text.Length == 0)
+                {
+                    <button type="button" class="pv-blank" style="@BlankStyle(token)"
+                            disabled="@(!Interactive)"
+                            title="@(Interactive ? "Show this word" : null)"
+                            data-testid="blank" data-token-index="@token.TokenIndex"
+                            @onclick="() => Toggle(token.TokenIndex)"></button>
+                }
+                else if (token.IsBlank)
+                {
+                    @* An abbreviated form, e.g. first-letter mode. *@
+                    <span class="pv-hint" data-testid="hint" data-token-index="@token.TokenIndex">@token.Text</span>
+                }
+                else
+                {
+                    <button type="button" class="pv-visible" disabled="@(!Interactive)"
+                            title="@(Interactive ? "Hide this word" : null)"
+                            data-testid="word" data-token-index="@token.TokenIndex"
+                            @onclick="() => Toggle(token.TokenIndex)">@token.Text</button>
+                }
+
+                @if (token.Suffix.Length > 0)
+                {
+                    <span class="pv-punct">@token.Suffix</span>
+                }
+            </span>
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<DisplayToken> Tokens { get; set; } = [];
+
+    /// <summary>When false, words render but cannot be clicked.</summary>
+    [Parameter]
+    public bool Interactive { get; set; } = true;
+
+    [Parameter]
+    public EventCallback<int> OnToggle { get; set; }
+
+    /// <summary>Per-token scoring outcomes, when showing results.</summary>
+    [Parameter]
+    public IReadOnlyDictionary<int, RecallOutcome>? Outcomes { get; set; }
+
+    private Task Toggle(int tokenIndex) =>
+        Interactive ? OnToggle.InvokeAsync(tokenIndex) : Task.CompletedTask;
+
+    private string? OutcomeClass(int tokenIndex)
+    {
+        if (Outcomes is null || !Outcomes.TryGetValue(tokenIndex, out var outcome))
+        {
+            return null;
+        }
+
+        return outcome switch
+        {
+            RecallOutcome.Correct => "pv-correct",
+            RecallOutcome.Wrong => "pv-wrong",
+            _ => "pv-missing",
+        };
+    }
+
+    /// <summary>
+    /// Sizes a blank to the word it hides. The length cue is part of what makes
+    /// vanishing text learnable, so a uniform blank would lose real information.
+    /// A floor keeps one- and two-letter blanks comfortably clickable.
+    /// </summary>
+    private static string BlankStyle(DisplayToken token)
+    {
+        var width = Math.Max(token.BlankWidth, 2);
+        return string.Create(CultureInfo.InvariantCulture, $"width: {width * 0.62m:0.##}em");
+    }
+}

@@ -30,8 +30,48 @@ public sealed class ScreenshotTour(AppFixture fixture, ITestOutputHelper output)
             .FillAsync("I can do all things through Christ which strengtheneth me.");
         await ShotAsync("03-compose");
 
+        await GotoAsync("import?demo=1");
+        await Page.GetByTestId("reference-box").FillAsync("Psalm 23:1-3");
+        await Page.GetByTestId("reference-lookup").ClickAsync();
+        await Page.GetByTestId("import-preview").WaitForAsync();
+        await ShotAsync("04-import");
+
         await GotoAsync("settings?demo=1");
-        await ShotAsync("04-settings");
+        await ShotAsync("05-settings");
+    }
+
+    [Fact]
+    public async Task Capture_practice()
+    {
+        await GotoAsync("library?demo=1");
+        await Page.GetByTestId("practice-link").First.ClickAsync();
+        await Page.GetByTestId("passage-view").WaitForAsync();
+        await ShotAsync("10-practice-study-nothing-hidden");
+
+        // A realistic mid-session state: some words gone, most still there.
+        await Page.GetByTestId("hide-more").ClickAsync();
+        await Page.GetByTestId("hide-more").ClickAsync();
+        await ShotAsync("11-practice-study-partly-hidden");
+
+        // Hide two known words so the answers below can be deliberately mixed.
+        await Page.GetByTestId("reveal-all").ClickAsync();
+        await Page.Locator("[data-testid=word]", new() { HasTextString = "God" }).First.ClickAsync();
+        await Page.Locator("[data-testid=word]", new() { HasTextString = "world" }).First.ClickAsync();
+        await Page.Locator("[data-testid=word]", new() { HasTextString = "perish" }).First.ClickAsync();
+
+        await Page.GetByTestId("mode-test").ClickAsync();
+        await ShotAsync("12-practice-test-blanks");
+
+        // One right, one wrong, one left blank, so the results show all three outcomes.
+        await Page.GetByTestId("blank-input").Nth(0).FillAsync("God");
+        await Page.GetByTestId("blank-input").Nth(1).FillAsync("earth");
+
+        await Page.GetByTestId("check-answers").ClickAsync();
+        await Page.GetByTestId("results-panel").WaitForAsync();
+        await ShotAsync("13-practice-results");
+
+        await Page.GetByTestId("technique-first-letter").ClickAsync();
+        await ShotAsync("14-practice-first-letter");
     }
 
     [Fact]
@@ -42,7 +82,13 @@ public sealed class ScreenshotTour(AppFixture fixture, ITestOutputHelper output)
         await GotoAsync("library?demo=1");
         await ShotAsync("mobile-01-library");
 
+        await GotoAsync("library?demo=1");
+        await Page.GetByTestId("practice-link").First.ClickAsync();
+        await Page.GetByTestId("passage-view").WaitForAsync();
+        await Page.GetByTestId("hide-more").ClickAsync();
+        await ShotAsync("mobile-02-practice");
+
         await GotoAsync("settings?demo=1");
-        await ShotAsync("mobile-02-settings");
+        await ShotAsync("mobile-03-settings");
     }
 }

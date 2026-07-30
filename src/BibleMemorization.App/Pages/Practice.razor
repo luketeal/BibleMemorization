@@ -1,7 +1,13 @@
 @page "/practice/{PassageId:guid}"
-@inject LibraryService Library
+@implements IDisposable
+@inject LibraryService Store
+@inject TechniqueRegistry Techniques
+@inject ISpeechSynthesizer Synthesizer
+@inject ISpeechRecognizer Recognizer
+@inject IClock Clock
+@inject AppMode Mode
 
-<PageTitle>Practice - Bible Memorization</PageTitle>
+<PageTitle>@(_passage?.Title ?? "Practice") - Bible Memorization</PageTitle>
 
 <h1 data-testid="practice-heading">@(_passage?.Title ?? "Practice")</h1>
 
@@ -9,18 +15,474 @@
 
 @if (_passage is null)
 {
-    <p class="empty-state" data-testid="practice-missing">That passage isn't in your library.</p>
+    <p class="empty-state" data-testid="practice-missing">
+        That passage isn't in your library.
+        <a href="@Mode.Link("library")">Back to the library</a>
+    </p>
 }
 else
 {
-    <p class="empty-state">Coming next.</p>
+    <p class="passage-meta" data-testid="practice-meta">
+        @if (!string.IsNullOrWhiteSpace(_passage.TranslationName))
+        {
+            <span>@_passage.TranslationName &middot; </span>
+        }
+        <span>@_tokens.WordCount words &middot; @HiddenCount hidden</span>
+    </p>
+
+    <div class="technique-picker">
+        @foreach (var technique in Techniques.All)
+        {
+            <button type="button"
+                    class="btn btn-sm @(technique.Id == _technique.Id ? "btn-primary" : "btn-outline-primary")"
+                    @onclick="() => SwitchTechniqueAsync(technique)"
+                    data-testid="technique-@technique.Id">
+                @technique.DisplayName
+            </button>
+        }
+    </div>
+    <p class="field-hint" data-testid="technique-description">@_technique.Description</p>
+
+    <div class="mode-tabs">
+        <button type="button" class="@TabClass(PracticeMode.Study)"
+                @onclick="() => SetModeAsync(PracticeMode.Study)" data-testid="mode-study">Study</button>
+        <button type="button" class="@TabClass(PracticeMode.Test)"
+                @onclick="() => SetModeAsync(PracticeMode.Test)" data-testid="mode-test">Test me</button>
+    </div>
+
+    @if (_mode == PracticeMode.Study)
+    {
+        <div class="toolbar" data-testid="study-controls">
+            @if (_technique.SupportsManualWordSelection)
+            {
+                <button class="btn btn-outline-primary btn-sm" @onclick="() => HideMoreAsync(0.1)"
+                        data-testid="hide-more">Hide 10% more</button>
+                <button class="btn btn-outline-primary btn-sm" @onclick="() => HideCountAsync(1)"
+                        data-testid="hide-one">Hide one</button>
+                <button class="btn btn-outline-primary btn-sm" @onclick="HideAllAsync"
+                        data-testid="hide-all">Hide all</button>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="RevealAllAsync"
+                        data-testid="reveal-all">Reveal all</button>
+            }
+
+            <div class="toolbar-spacer"></div>
+
+            @if (_canSpeak)
+            {
+                <button class="btn btn-outline-secondary btn-sm" @onclick="ReadAloudAsync"
+                        data-testid="read-aloud">Read it aloud</button>
+            }
+        </div>
+
+        @if (_technique.SupportsManualWordSelection)
+        {
+            <p class="field-hint">Tap any word to make it vanish. Tap a blank to bring it back.</p>
+        }
+
+        <PassageView Tokens="_display" Interactive="_technique.SupportsManualWordSelection"
+                     OnToggle="ToggleWordAsync" />
+    }
+    else
+    {
+        <div class="toolbar" data-testid="test-controls">
+            <button type="button" class="@InputClass(TestInput.Blanks)" @onclick="() => SetInput(TestInput.Blanks)"
+                    data-testid="input-blanks" disabled="@(TestedIndices.Count == 0)">Fill the blanks</button>
+            <button type="button" class="@InputClass(TestInput.Recite)" @onclick="() => SetInput(TestInput.Recite)"
+                    data-testid="input-recite">Write it out</button>
+            <button type="button" class="@InputClass(TestInput.Speak)" @onclick="() => SetInput(TestInput.Speak)"
+                    data-testid="input-speak">Say it</button>
+        </div>
+
+        @* Only filling blanks needs blanks. Writing the passage out or reciting it
+           tests the whole thing, so neither depends on anything being hidden. *@
+        @if (_input == TestInput.Blanks && TestedIndices.Count == 0)
+        {
+            <p class="empty-state" data-testid="nothing-hidden">
+                Nothing is hidden yet, so there are no blanks to fill.
+                Hide some words in Study, or write the passage out instead.
+            </p>
+        }
+        else if (_input == TestInput.Blanks)
+        {
+            <p class="field-hint">Type each missing word. Press Enter or Tab to check it.</p>
+
+            <div class="passage-view" data-testid="blank-form">
+                @foreach (var token in _display)
+                {
+                    @token.Leading
+
+                    @if (!token.IsWord)
+                    {
+                        <span class="pv-punct">@token.Text@token.Suffix</span>
+                    }
+                    else if (token.IsBlank)
+                    {
+                        <span class="pv-word">
+                            <span class="pv-punct">@token.Prefix</span>
+                            <input class="pv-input @AnswerClass(token.TokenIndex)"
+                                   style="@InputWidth(token)"
+                                   value="@GetAnswer(token.TokenIndex)"
+                                   @oninput="e => SetAnswer(token.TokenIndex, e.Value?.ToString())"
+                                   @onchange="() => CheckOne(token.TokenIndex)"
+                                   @onkeydown="e => OnBlankKeyDown(e, token.TokenIndex)"
+                                   data-testid="blank-input" data-token-index="@token.TokenIndex" />
+                            <span class="pv-punct">@token.Suffix</span>
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="pv-word"><span class="pv-punct">@token.Prefix</span><span class="pv-visible-static">@token.Text</span><span class="pv-punct">@token.Suffix</span></span>
+                    }
+                }
+            </div>
+        }
+        else if (_input == TestInput.Recite)
+        {
+            <p class="field-hint">Write out the whole passage from memory.</p>
+            <textarea class="form-control compose-text" rows="8" @bind="_recitation" @bind:event="oninput"
+                      placeholder="Start writing&hellip;" data-testid="recite-box"></textarea>
+        }
+        else
+        {
+            <SpokenRecall Expected="_tokens" TestedIndices="TestedIndices" OnResult="ApplySpokenResult" />
+        }
+
+        @if (_input == TestInput.Recite || (_input == TestInput.Blanks && TestedIndices.Count > 0))
+        {
+            <div class="toolbar">
+                <button class="btn btn-primary" @onclick="CheckAllAsync" data-testid="check-answers">
+                    Check my answers
+                </button>
+            </div>
+        }
+    }
+
+    @if (_result is not null)
+    {
+        <section class="results-panel" data-testid="results-panel">
+            <h2>
+                <span data-testid="results-accuracy">@($"{_result.Accuracy:P0}")</span>
+                &mdash; @_result.CorrectCount of @_result.ExpectedCount words
+            </h2>
+
+            @if (_result.IsPerfect)
+            {
+                <p class="results-perfect" data-testid="results-perfect">Word perfect.</p>
+            }
+
+            @if (_result.ExtraWords.Count > 0)
+            {
+                <p class="field-hint" data-testid="results-extra">
+                    Extra words: @string.Join(", ", _result.ExtraWords)
+                </p>
+            }
+
+            <PassageView Tokens="_resultDisplay" Interactive="false" Outcomes="_outcomes" />
+
+            <ul class="results-legend">
+                <li><span class="swatch pv-correct"></span> right</li>
+                <li><span class="swatch pv-wrong"></span> different word</li>
+                <li><span class="swatch pv-missing"></span> missed</li>
+            </ul>
+
+            <button class="btn btn-outline-primary btn-sm" @onclick="ClearResult" data-testid="try-again">
+                Try again
+            </button>
+        </section>
+    }
+
+    @if (_attempts.Count > 0)
+    {
+        <section class="history-panel" data-testid="attempt-history">
+            <h2>Recent attempts</h2>
+            <ul>
+                @foreach (var attempt in _attempts.OrderByDescending(a => a.Utc).Take(5))
+                {
+                    <li>
+                        <strong>@($"{attempt.Accuracy:P0}")</strong>
+                        &middot; @attempt.InputMode.ToString().ToLowerInvariant()
+                        &middot; @attempt.Utc.ToLocalTime().ToString("d MMM HH:mm")
+                    </li>
+                }
+            </ul>
+        </section>
+    }
 }
 
 @code {
+    private enum PracticeMode { Study, Test }
+
+    private enum TestInput { Blanks, Recite, Speak }
+
     [Parameter]
     public Guid PassageId { get; set; }
 
     private Passage? _passage;
+    private TokenizedPassage _tokens = Tokenizer.Tokenize(string.Empty);
+    private IMemoryTechnique _technique = default!;
+    private TechniqueState _state = new();
+    private IReadOnlyList<DisplayToken> _display = [];
+    private IReadOnlyList<DisplayToken> _resultDisplay = [];
+    private List<Attempt> _attempts = [];
 
-    protected override void OnParametersSet() => _passage = Library.FindPassage(PassageId);
+    private PracticeMode _mode = PracticeMode.Study;
+    private TestInput _input = TestInput.Blanks;
+
+    private readonly Dictionary<int, string> _answers = [];
+    private readonly Dictionary<int, bool> _checked = [];
+    private string _recitation = string.Empty;
+
+    private RecallResult? _result;
+    private IReadOnlyDictionary<int, RecallOutcome>? _outcomes;
+    private DateTimeOffset _startedAt;
+    private bool _canSpeak;
+
+    private IReadOnlyList<int> TestedIndices => _technique.GetTestedTokenIndices(_tokens, _state);
+
+    private int HiddenCount => _state.HiddenTokenIndices.Count;
+
+    protected override void OnInitialized()
+    {
+        _technique = Techniques.Get(Store.Settings.DefaultTechniqueId);
+        Store.Changed += OnLibraryChanged;
+    }
+
+    public void Dispose() => Store.Changed -= OnLibraryChanged;
+
+    private void OnLibraryChanged() => InvokeAsync(StateHasChanged);
+
+    protected override void OnParametersSet()
+    {
+        _passage = Store.FindPassage(PassageId);
+
+        if (_passage is null)
+        {
+            return;
+        }
+
+        _tokens = Tokenizer.Tokenize(_passage.Text);
+        LoadProgress();
+        Rerender();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        _canSpeak = Synthesizer is WebSpeechSynthesizer web
+            ? await web.ProbeSupportAsync()
+            : Synthesizer.IsSupported;
+
+        StateHasChanged();
+    }
+
+    private void LoadProgress()
+    {
+        var progress = Store.GetProgress(PassageId, _technique.Id);
+        _state = new TechniqueState(progress.HiddenTokenIndices);
+        _attempts = [.. progress.Attempts];
+        _startedAt = Clock.UtcNow;
+    }
+
+    private void Rerender()
+    {
+        _display = _technique.Render(_tokens, _state);
+    }
+
+    private async Task SwitchTechniqueAsync(IMemoryTechnique technique)
+    {
+        if (technique.Id == _technique.Id)
+        {
+            return;
+        }
+
+        _technique = technique;
+        ClearResult();
+
+        // Progress is stored per technique, so switching restores whatever was
+        // hidden under this one rather than carrying the other's state across.
+        LoadProgress();
+        Rerender();
+
+        await Store.SaveSettingsAsync(Store.Settings with { DefaultTechniqueId = technique.Id });
+    }
+
+    private async Task SetModeAsync(PracticeMode mode)
+    {
+        _mode = mode;
+        ClearResult();
+
+        if (mode == PracticeMode.Test)
+        {
+            _answers.Clear();
+            _checked.Clear();
+            _recitation = string.Empty;
+            _startedAt = Clock.UtcNow;
+
+            // Filling blanks needs blanks; first-letter mode hides everything at once
+            // and reads better as a written or spoken recall.
+            if (!_technique.SupportsManualWordSelection)
+            {
+                _input = TestInput.Recite;
+            }
+        }
+
+        await Task.CompletedTask;
+    }
+
+    private void SetInput(TestInput input)
+    {
+        _input = input;
+        ClearResult();
+    }
+
+    private string TabClass(PracticeMode mode) =>
+        mode == _mode ? "mode-tab active" : "mode-tab";
+
+    private string InputClass(TestInput input) =>
+        input == _input ? "btn btn-sm btn-primary" : "btn btn-sm btn-outline-primary";
+
+    // ---- Study mode ----
+
+    private Task ToggleWordAsync(int tokenIndex) =>
+        ApplyHiddenAsync(WordHider.Toggle(_tokens, _state.HiddenTokenIndices, tokenIndex));
+
+    private Task HideMoreAsync(double percent) =>
+        ApplyHiddenAsync(WordHider.HideMorePercent(_tokens, _state.HiddenTokenIndices, percent, NextSeed()));
+
+    private Task HideCountAsync(int count) =>
+        ApplyHiddenAsync(WordHider.HideMore(_tokens, _state.HiddenTokenIndices, count, NextSeed()));
+
+    private Task HideAllAsync() => ApplyHiddenAsync(WordHider.HideAll(_tokens));
+
+    private Task RevealAllAsync() => ApplyHiddenAsync(WordHider.RevealAll());
+
+    /// <summary>
+    /// Varies the seed per click so repeated presses hide different words, while
+    /// each individual call stays reproducible.
+    /// </summary>
+    private int NextSeed() => HashCode.Combine(PassageId, _state.HiddenTokenIndices.Count, _technique.Id);
+
+    private async Task ApplyHiddenAsync(IReadOnlyList<int> hidden)
+    {
+        _state = new TechniqueState(hidden);
+        Rerender();
+        ClearResult();
+
+        await Store.SaveProgressAsync(new PracticeProgress
+        {
+            PassageId = PassageId,
+            TechniqueId = _technique.Id,
+            HiddenTokenIndices = hidden,
+            Attempts = _attempts,
+        });
+    }
+
+    private async Task ReadAloudAsync() =>
+        await Synthesizer.SpeakAsync(
+            _passage!.Text,
+            new SpeechOptions { Rate = Store.Settings.SpeechRate, VoiceName = Store.Settings.VoiceName });
+
+    // ---- Test mode ----
+
+    private string GetAnswer(int tokenIndex) => _answers.GetValueOrDefault(tokenIndex, string.Empty);
+
+    private void SetAnswer(int tokenIndex, string? value)
+    {
+        _answers[tokenIndex] = value ?? string.Empty;
+        _checked.Remove(tokenIndex);
+    }
+
+    private void CheckOne(int tokenIndex)
+    {
+        if (string.IsNullOrWhiteSpace(GetAnswer(tokenIndex)))
+        {
+            _checked.Remove(tokenIndex);
+            return;
+        }
+
+        _checked[tokenIndex] = RecallScorer.ScoreSingleWord(_tokens, tokenIndex, GetAnswer(tokenIndex));
+    }
+
+    private async Task OnBlankKeyDown(KeyboardEventArgs e, int tokenIndex)
+    {
+        if (e.Key == "Enter")
+        {
+            CheckOne(tokenIndex);
+
+            // Enter on the last blank submits, which is what a keyboard user expects
+            // rather than having to reach for the button.
+            if (TestedIndices.LastOrDefault() == tokenIndex)
+            {
+                await CheckAllAsync();
+            }
+        }
+    }
+
+    private string? AnswerClass(int tokenIndex) =>
+        _checked.TryGetValue(tokenIndex, out var correct)
+            ? correct ? "pv-input-correct" : "pv-input-wrong"
+            : null;
+
+    private static string InputWidth(DisplayToken token)
+    {
+        var width = Math.Max(token.BlankWidth, 3);
+        return System.String.Create(
+            System.Globalization.CultureInfo.InvariantCulture, $"width: {width * 0.72m:0.##}em");
+    }
+
+    private async Task CheckAllAsync()
+    {
+        var tested = TestedIndices;
+
+        // Blanks are scored positionally and recitation by alignment, because only
+        // one of the two can have words shift out of position.
+        var result = _input == TestInput.Recite
+            ? RecallScorer.Score(_tokens, _tokens.WordIndices, _recitation)
+            : RecallScorer.ScoreBlanks(_tokens, tested, _answers);
+
+        await RecordAsync(result, InputMode.Typed);
+    }
+
+    private Task ApplySpokenResult(RecallResult result) => RecordAsync(result, InputMode.Spoken);
+
+    private async Task RecordAsync(RecallResult result, InputMode inputMode)
+    {
+        _result = result;
+        _outcomes = result.Tokens.ToDictionary(t => t.TokenIndex, t => t.Outcome);
+
+        // Results are shown against the fully visible passage, so the user can read
+        // what they missed in context rather than against a wall of blanks.
+        _resultDisplay = _tokens.Select(DisplayToken.Visible).ToArray();
+
+        var attempt = new Attempt
+        {
+            Utc = Clock.UtcNow,
+            TechniqueId = _technique.Id,
+            InputMode = inputMode,
+            Accuracy = result.Accuracy,
+            DurationMs = (int)Math.Clamp((Clock.UtcNow - _startedAt).TotalMilliseconds, 0, int.MaxValue),
+        };
+
+        _attempts.Add(attempt);
+
+        await Store.SaveProgressAsync(new PracticeProgress
+        {
+            PassageId = PassageId,
+            TechniqueId = _technique.Id,
+            HiddenTokenIndices = [.. _state.HiddenTokenIndices.OrderBy(i => i)],
+            Attempts = _attempts,
+        });
+    }
+
+    private void ClearResult()
+    {
+        _result = null;
+        _outcomes = null;
+        _resultDisplay = [];
+        _startedAt = Clock.UtcNow;
+    }
 }

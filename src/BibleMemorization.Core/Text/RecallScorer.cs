@@ -91,6 +91,43 @@ public static class RecallScorer
     }
 
     /// <summary>
+    /// Scores answers typed into specific blanks.
+    ///
+    /// Deliberately positional rather than aligned. Alignment exists to absorb words
+    /// shifting, which cannot happen here: each answer was typed into a known gap.
+    /// Running alignment over it actively misleads — a wrong answer can pair with a
+    /// later blank and get reported against a word the user never typed into.
+    /// </summary>
+    public static RecallResult ScoreBlanks(
+        TokenizedPassage passage,
+        IReadOnlyList<int> expectedTokenIndices,
+        IReadOnlyDictionary<int, string> answers)
+    {
+        var results = new List<TokenRecall>();
+
+        foreach (var index in expectedTokenIndices.Where(i => i >= 0 && i < passage.Count && passage[i].IsWord)
+                                                  .OrderBy(i => i))
+        {
+            var expected = passage[index].Word;
+            answers.TryGetValue(index, out var answer);
+
+            if (string.IsNullOrWhiteSpace(answer))
+            {
+                results.Add(new TokenRecall(index, expected, null, RecallOutcome.Missing));
+                continue;
+            }
+
+            var outcome = TextNormalizer.WordsMatch(expected, answer)
+                ? RecallOutcome.Correct
+                : RecallOutcome.Wrong;
+
+            results.Add(new TokenRecall(index, expected, answer.Trim(), outcome));
+        }
+
+        return new RecallResult(results, []);
+    }
+
+    /// <summary>
     /// Convenience for the single-blank case, where one word is typed into one gap
     /// and alignment has nothing to absorb.
     /// </summary>
