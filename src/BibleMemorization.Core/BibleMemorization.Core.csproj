@@ -4,6 +4,13 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- The library is consumed by a trimmed Blazor WASM app, so keep it analysable. -->
+    <IsTrimmable>true</IsTrimmable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Offline sample chapters, in the live API's own JSON shape. -->
+    <EmbeddedResource Include="Bible/Fixtures/*.json" />
+  </ItemGroup>
 
 </Project>
