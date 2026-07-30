@@ -91,6 +91,8 @@ else
                     data-testid="input-recite">Write it out</button>
             <button type="button" class="@InputClass(TestInput.Speak)" @onclick="() => SetInput(TestInput.Speak)"
                     data-testid="input-speak">Say it</button>
+            <button type="button" class="@InputClass(TestInput.ReadAlong)" @onclick="() => SetInput(TestInput.ReadAlong)"
+                    data-testid="input-read-along">Read along</button>
         </div>
 
         @* Only filling blanks needs blanks. Writing the passage out or reciting it
@@ -142,9 +144,13 @@ else
             <textarea class="form-control compose-text" rows="8" @bind="_recitation" @bind:event="oninput"
                       placeholder="Start writing&hellip;" data-testid="recite-box"></textarea>
         }
-        else
+        else if (_input == TestInput.Speak)
         {
             <SpokenRecall Expected="_tokens" TestedIndices="TestedIndices" OnResult="ApplySpokenResult" />
+        }
+        else
+        {
+            <ReadAlongPanel Passage="_tokens" Hidden="_state.HiddenTokenIndices" Settings="Store.Settings" />
         }
 
         @if (_input == TestInput.Recite || (_input == TestInput.Blanks && TestedIndices.Count > 0))
@@ -212,7 +218,7 @@ else
 @code {
     private enum PracticeMode { Study, Test }
 
-    private enum TestInput { Blanks, Recite, Speak }
+    private enum TestInput { Blanks, Recite, Speak, ReadAlong }
 
     [Parameter]
     public Guid PassageId { get; set; }

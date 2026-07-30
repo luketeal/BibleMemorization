@@ -15,6 +15,10 @@ public sealed class ScreenshotTour(AppFixture fixture, ITestOutputHelper output)
 {
     private static readonly ViewportSize Mobile = new() { Width = 390, Height = 844 };
 
+    private Task WaitForListeningAsync() =>
+        Assertions.Expect(Page.GetByTestId("read-along-phase"))
+            .ToContainTextAsync("Listening", new() { Timeout = 20_000 });
+
     [Fact]
     public async Task Capture_desktop()
     {
@@ -72,6 +76,39 @@ public sealed class ScreenshotTour(AppFixture fixture, ITestOutputHelper output)
 
         await Page.GetByTestId("technique-first-letter").ClickAsync();
         await ShotAsync("14-practice-first-letter");
+    }
+
+    [Fact]
+    public async Task Capture_read_along()
+    {
+        await GotoAsync("library?demo=1");
+        await Page.GetByTestId("practice-link").First.ClickAsync();
+        await Page.GetByTestId("passage-view").WaitForAsync();
+
+        await Page.Locator("[data-testid=word]", new() { HasTextString = "God" }).First.ClickAsync();
+        await Page.Locator("[data-testid=word]", new() { HasTextString = "world" }).First.ClickAsync();
+
+        await Page.GetByTestId("mode-test").ClickAsync();
+        await Page.GetByTestId("input-read-along").ClickAsync();
+        await ShotAsync("20-read-along-ready");
+
+        await Page.GetByTestId("read-along-toggle").ClickAsync();
+
+        // Each answer has to wait for its own listen window. Emitting while the app
+        // is still reading is exactly what the coordinator ignores, so a screenshot
+        // taken without this wait would show "nothing heard".
+        await WaitForListeningAsync();
+        await ShotAsync("21-read-along-listening");
+        await Page.EvaluateAsync("async () => await window.__bmTest.emitTranscript('God', true)");
+
+        await Assertions.Expect(Page.GetByTestId("read-along-log"))
+            .ToContainTextAsync("got it", new() { Timeout = 20_000 });
+
+        await WaitForListeningAsync();
+        await Page.EvaluateAsync("async () => await window.__bmTest.emitTranscript('earth', true)");
+
+        await Page.GetByTestId("read-along-done").WaitForAsync(new() { Timeout = 30_000 });
+        await ShotAsync("22-read-along-finished");
     }
 
     [Fact]

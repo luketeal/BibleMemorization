@@ -493,3 +493,30 @@ code {
 @media (max-width: 640px) {
     .passage-view { font-size: 1.1rem; line-height: 2.2; padding: 0.75rem; }
 }
+
+/* ---- Read-along ---- */
+.read-along { margin-top: 0.5rem; }
+
+.read-along-phase {
+    font-weight: 600;
+    color: #0a58ca;
+}
+
+.read-along-log {
+    list-style: none;
+    padding: 0;
+    margin: 0.75rem 0;
+    max-width: 34rem;
+}
+
+.read-along-log li {
+    padding: 0.35rem 0.6rem;
+    border-radius: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.read-along-log .ra-correct { background: #d1e7dd; }
+
+.read-along-log .ra-missed { background: #f8d7da; }
+
+.read-along-done { font-weight: 600; }

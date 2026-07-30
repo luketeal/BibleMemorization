@@ -1,0 +1,152 @@
+@implements IAsyncDisposable
+@inject ISpeechSynthesizer Synthesizer
+@inject ISpeechRecognizer Recognizer
+@inject AppMode Mode
+
+<div class="read-along" data-testid="read-along">
+    @if (_supportChecked && !_isSupported)
+    {
+        <div class="alert alert-warning" data-testid="read-along-unsupported">
+            <strong>Read-along needs speech recognition.</strong>
+            Chrome, Edge and Safari have it; Firefox does not. The typed tests work everywhere.
+        </div>
+    }
+    else
+    {
+        <p class="field-hint">
+            The app reads the words still showing and pauses at each blank for you to
+            say the missing ones. Read along out loud with it.
+        </p>
+
+        <div class="toolbar">
+            <button class="btn @(_coordinator?.IsRunning == true ? "btn-danger" : "btn-primary")"
+                    @onclick="ToggleAsync" data-testid="read-along-toggle">
+                @(_coordinator?.IsRunning == true ? "Stop" : "Start read-along")
+            </button>
+
+            @if (Hidden.Count == 0)
+            {
+                <span class="field-hint">Nothing is hidden, so the app will just read it to you.</span>
+            }
+        </div>
+
+        @if (_coordinator is not null && _coordinator.IsRunning)
+        {
+            <p class="read-along-phase" data-testid="read-along-phase">
+                @PhaseLabel
+            </p>
+        }
+
+        @if (_coordinator is not null && _coordinator.Outcomes.Count > 0)
+        {
+            <ul class="read-along-log" data-testid="read-along-log">
+                @foreach (var outcome in _coordinator.Outcomes)
+                {
+                    <li class="@(outcome.Correct ? "ra-correct" : "ra-missed")">
+                        <strong>@outcome.Expected</strong>
+                        @if (outcome.Correct)
+                        {
+                            <span> &mdash; got it</span>
+                        }
+                        else if (outcome.Heard is not null)
+                        {
+                            <span> &mdash; heard "@outcome.Heard"</span>
+                        }
+                        else
+                        {
+                            <span> &mdash; nothing heard</span>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+
+        @if (_coordinator?.Phase == ReadAlongPhase.Finished)
+        {
+            <p class="read-along-done" data-testid="read-along-done">
+                Finished &mdash; @_coordinator.Outcomes.Count(o => o.Correct)
+                of @_coordinator.Outcomes.Count filled in.
+            </p>
+        }
+
+        @if (Mode.IsLive)
+        {
+            <p class="field-hint">Your browser may send audio to its speech service to transcribe it.</p>
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public TokenizedPassage Passage { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyCollection<int> Hidden { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public AppSettings Settings { get; set; } = AppSettings.Default;
+
+    private ReadAlongCoordinator? _coordinator;
+    private bool _isSupported;
+    private bool _supportChecked;
+
+    private string PhaseLabel => _coordinator?.Phase switch
+    {
+        ReadAlongPhase.Speaking => "Reading aloud…",
+        ReadAlongPhase.Pausing => "Your turn in a moment…",
+        ReadAlongPhase.Listening => "Listening — say the missing words",
+        _ => string.Empty,
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        _isSupported = Recognizer is WebSpeechRecognizer web
+            ? await web.ProbeSupportAsync()
+            : Recognizer.IsSupported;
+
+        _supportChecked = true;
+        StateHasChanged();
+    }
+
+    private async Task ToggleAsync()
+    {
+        if (_coordinator?.IsRunning == true)
+        {
+            await _coordinator.StopAsync();
+            StateHasChanged();
+            return;
+        }
+
+        await DisposeCoordinatorAsync();
+
+        _coordinator = new ReadAlongCoordinator(Synthesizer, Recognizer);
+        _coordinator.Changed += OnCoordinatorChanged;
+
+        // Deliberately not awaited: the run drives itself through speak and listen
+        // phases while the UI keeps redrawing from the Changed event.
+        _ = _coordinator.RunAsync(Passage, Hidden, Settings);
+
+        StateHasChanged();
+    }
+
+    private void OnCoordinatorChanged() => InvokeAsync(StateHasChanged);
+
+    private async Task DisposeCoordinatorAsync()
+    {
+        if (_coordinator is null)
+        {
+            return;
+        }
+
+        _coordinator.Changed -= OnCoordinatorChanged;
+        await _coordinator.DisposeAsync();
+        _coordinator = null;
+    }
+
+    public ValueTask DisposeAsync() => new(DisposeCoordinatorAsync());
+}
