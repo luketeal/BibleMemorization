@@ -259,3 +259,58 @@ code {
     .passage-card { flex-direction: column; }
     .passage-card-actions { flex-direction: row; }
 }
+
+/* ---- Import ---- */
+.import-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.import-panel {
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background: #fff;
+}
+
+.import-panel h2 {
+    font-size: 1.05rem;
+    margin-bottom: 0.75rem;
+}
+
+.preview-panel {
+    border: 1px solid #b6d4fe;
+    background: #f8fbff;
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+    margin-top: 1rem;
+}
+
+.preview-panel h2 { font-size: 1.15rem; margin-bottom: 0.25rem; }
+
+.preview-text {
+    font-size: 1.1rem;
+    line-height: 1.7;
+    border-left: 3px solid #b6d4fe;
+    padding-left: 1rem;
+    margin: 1rem 0;
+    color: #212529;
+}
+
+.verse-range {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.form-select-inline {
+    display: inline-block;
+    width: auto;
+    padding: 0.25rem 1.75rem 0.25rem 0.5rem;
+    margin-left: 0.35rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+}
