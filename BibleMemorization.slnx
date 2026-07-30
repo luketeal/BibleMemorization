@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/BibleMemorization.App/BibleMemorization.App.csproj" />
+    <Project Path="src/BibleMemorization.Core/BibleMemorization.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/BibleMemorization.Core.Tests/BibleMemorization.Core.Tests.csproj" />
+    <Project Path="tests/BibleMemorization.E2E/BibleMemorization.E2E.csproj" />
+  </Folder>
+</Solution>

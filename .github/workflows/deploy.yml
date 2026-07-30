@@ -1,0 +1,81 @@
+name: Build and deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+      - claude/bible-memory-app-plan-h15q8r
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment, letting in-progress runs finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  # Repository name, which is also the GitHub Pages sub-path.
+  BASE_PATH: BibleMemorization
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore -c Release
+
+      - name: Unit tests
+        run: dotnet test tests/BibleMemorization.Core.Tests --no-build -c Release --verbosity normal
+
+      - name: Publish
+        run: dotnet publish src/BibleMemorization.App -c Release -o dist
+
+      # Blazor's index.html ships with <base href="/" />, which only works at a
+      # domain root. GitHub Pages serves this app from /BibleMemorization/, so the
+      # base href must match or every asset request 404s and the page renders blank.
+      - name: Rewrite base href
+        run: |
+          set -euo pipefail
+          sed -i 's|<base href="/" />|<base href="/${{ env.BASE_PATH }}/" />|g' dist/wwwroot/index.html
+          # Fail loudly if the substitution silently matched nothing.
+          grep -q '<base href="/${{ env.BASE_PATH }}/" />' dist/wwwroot/index.html
+          # Drop the pre-compressed copies: they still hold the old base href and
+          # nothing serves them for index.html anyway.
+          rm -f dist/wwwroot/index.html.br dist/wwwroot/index.html.gz
+
+      # GitHub Pages serves 404.html for unknown paths. Serving the app shell from
+      # there is what makes client-side routes survive a refresh or a deep link.
+      - name: Add SPA fallback and disable Jekyll
+        run: |
+          cp dist/wwwroot/index.html dist/wwwroot/404.html
+          touch dist/wwwroot/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/wwwroot
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
