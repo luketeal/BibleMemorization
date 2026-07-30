@@ -142,3 +142,120 @@ code {
     font-weight: 600;
     color: #495057;
 }
+
+/* ---- Layout helpers ---- */
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    margin: 1rem 0;
+}
+
+.toolbar-spacer { flex: 1 1 auto; }
+
+.empty-state {
+    color: #6c757d;
+    font-style: italic;
+    padding: 2rem 0;
+}
+
+.field-hint {
+    color: #6c757d;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.form-group { margin-bottom: 1rem; }
+
+.demo-banner {
+    background: #fff3cd;
+    border: 1px solid #ffe69c;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.demo-banner a { margin-left: 0.5rem; }
+
+/* ---- Library ---- */
+.passage-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.75rem;
+}
+
+.passage-card {
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    align-items: flex-start;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background: #fff;
+}
+
+.passage-card-main { min-width: 0; }
+
+.passage-title {
+    font-size: 1.1rem;
+    margin: 0 0 0.25rem;
+}
+
+.passage-meta {
+    color: #6c757d;
+    font-size: 0.85rem;
+    margin: 0 0 0.5rem;
+}
+
+.passage-preview {
+    margin: 0;
+    color: #343a40;
+}
+
+.passage-card-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.import-prompt {
+    border: 1px solid #b6d4fe;
+    background: #e7f1ff;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* ---- Compose ---- */
+.compose-text {
+    font-size: 1.05rem;
+    line-height: 1.6;
+}
+
+.dictation { margin: 1rem 0; }
+
+.dictation-status {
+    margin-left: 0.75rem;
+    color: #6c757d;
+}
+
+/* ---- Settings ---- */
+.settings-section {
+    border-top: 1px solid #dee2e6;
+    padding: 1.25rem 0;
+    max-width: 40rem;
+}
+
+.settings-section h2 { font-size: 1.15rem; }
+
+.danger-zone h2 { color: #b02a37; }
+
+@media (max-width: 640px) {
+    .passage-card { flex-direction: column; }
+    .passage-card-actions { flex-direction: row; }
+}

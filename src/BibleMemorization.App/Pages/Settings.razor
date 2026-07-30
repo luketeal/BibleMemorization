@@ -1,0 +1,111 @@
+@page "/settings"
+@inject LibraryService Library
+@inject StorageProviderRegistry Providers
+@inject AppMode Mode
+
+<PageTitle>Settings - Bible Memorization</PageTitle>
+
+<h1 data-testid="settings-heading">Settings</h1>
+
+<DemoBanner />
+
+<section class="settings-section">
+    <h2>Where your work is kept</h2>
+    <p data-testid="active-storage">
+        Saved to: <strong>@Providers.Active.DisplayName</strong>
+    </p>
+    <p class="field-hint">
+        Data stays on this device and in this browser. It won't follow you to another
+        computer, and clearing your browser data will erase it — so export a .save
+        file if you want to keep it.
+    </p>
+</section>
+
+<section class="settings-section">
+    <h2>Reading aloud</h2>
+
+    <div class="form-group">
+        <label for="speech-rate">
+            Speed: @_settings.SpeechRate.ToString("0.0")&times;
+        </label>
+        <input id="speech-rate" type="range" class="form-range" min="0.5" max="2" step="0.1"
+               value="@_settings.SpeechRate"
+               @onchange="e => Update(s => s with { SpeechRate = ToDouble(e.Value, 1.0) })"
+               data-testid="speech-rate" />
+    </div>
+</section>
+
+<section class="settings-section">
+    <h2>Guided read-along</h2>
+    <p class="field-hint">
+        The app reads the words still showing and pauses at each blank for you to
+        fill in. These control that rhythm.
+    </p>
+
+    <div class="form-group">
+        <label for="pause-ms">Pause before listening: @_settings.ReadAlongPauseMs ms</label>
+        <input id="pause-ms" type="range" class="form-range" min="100" max="2000" step="100"
+               value="@_settings.ReadAlongPauseMs"
+               @onchange="e => Update(s => s with { ReadAlongPauseMs = ToInt(e.Value, 600) })"
+               data-testid="pause-ms" />
+    </div>
+
+    <div class="form-group">
+        <label for="listen-ms">Wait for you to speak: @(_settings.ReadAlongListenTimeoutMs / 1000.0)s</label>
+        <input id="listen-ms" type="range" class="form-range" min="2000" max="15000" step="500"
+               value="@_settings.ReadAlongListenTimeoutMs"
+               @onchange="e => Update(s => s with { ReadAlongListenTimeoutMs = ToInt(e.Value, 6000) })"
+               data-testid="listen-ms" />
+    </div>
+
+    <div class="form-check">
+        <input id="retry-miss" type="checkbox" class="form-check-input"
+               checked="@_settings.ReadAlongRetryOnMiss"
+               @onchange="e => Update(s => s with { ReadAlongRetryOnMiss = (bool)(e.Value ?? false) })"
+               data-testid="retry-miss" />
+        <label class="form-check-label" for="retry-miss">Give me a second try before revealing a word</label>
+    </div>
+</section>
+
+<section class="settings-section danger-zone">
+    <h2>Clear everything</h2>
+    <p class="field-hint">Removes every passage and all progress from this browser. There's no undo.</p>
+
+    @if (_confirmingClear)
+    {
+        <p><strong>Delete @Library.Passages.Count passage(s) and all progress?</strong></p>
+        <button class="btn btn-danger" @onclick="ClearAsync" data-testid="clear-confirm">Yes, delete everything</button>
+        <button class="btn btn-link" @onclick="() => _confirmingClear = false">Cancel</button>
+    }
+    else
+    {
+        <button class="btn btn-outline-danger" @onclick="() => _confirmingClear = true"
+                data-testid="clear-all">Clear all data</button>
+    }
+</section>
+
+@code {
+    private AppSettings _settings = AppSettings.Default;
+    private bool _confirmingClear;
+
+    protected override void OnInitialized() => _settings = Library.Settings;
+
+    private async Task Update(Func<AppSettings, AppSettings> change)
+    {
+        _settings = change(_settings);
+        await Library.SaveSettingsAsync(_settings);
+    }
+
+    private async Task ClearAsync()
+    {
+        await Library.ClearAsync();
+        _settings = Library.Settings;
+        _confirmingClear = false;
+    }
+
+    private static double ToDouble(object? value, double fallback) =>
+        double.TryParse(value?.ToString(), out var parsed) ? parsed : fallback;
+
+    private static int ToInt(object? value, int fallback) =>
+        int.TryParse(value?.ToString(), out var parsed) ? parsed : fallback;
+}

@@ -1,0 +1,25 @@
+@inject AppMode Mode
+
+@if (Mode.IsDemo)
+{
+    <div class="demo-banner" data-testid="demo-banner">
+        <strong>Demo mode.</strong>
+        Passages come from a few chapters bundled with the app, speech is simulated,
+        and nothing is saved when you close the tab.
+        <a href="@RealAppUrl">Leave demo mode</a>
+    </div>
+}
+
+@code {
+    [Inject]
+    private NavigationManager Navigation { get; set; } = default!;
+
+    private string RealAppUrl
+    {
+        get
+        {
+            var uri = new Uri(Navigation.Uri);
+            return uri.GetLeftPart(UriPartial.Path);
+        }
+    }
+}

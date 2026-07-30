@@ -1,0 +1,192 @@
+@page "/library"
+@implements IDisposable
+@inject LibraryService Store
+@inject SaveFileProvider SaveFile
+@inject AppMode Mode
+
+<PageTitle>Library - Bible Memorization</PageTitle>
+
+<h1 data-testid="library-heading">Library</h1>
+
+<DemoBanner />
+
+<div class="toolbar">
+    <a class="btn btn-primary" href="@Mode.Link("import")">Import a passage</a>
+    <a class="btn btn-outline-primary" href="@Mode.Link("compose")">Write your own</a>
+
+    <div class="toolbar-spacer"></div>
+
+    <button class="btn btn-outline-secondary" @onclick="ExportAsync"
+            disabled="@(Store.Passages.Count == 0)" data-testid="export-button">
+        Export .save
+    </button>
+
+    <label class="btn btn-outline-secondary mb-0" data-testid="import-label">
+        Import .save
+        <InputFile OnChange="OnFileChosenAsync" accept=".save,.json" class="visually-hidden" />
+    </label>
+</div>
+
+@if (_message is not null)
+{
+    <div class="alert @(_isError ? "alert-danger" : "alert-success")" data-testid="library-message">
+        @_message
+    </div>
+}
+
+@if (_pendingImport is not null)
+{
+    <div class="import-prompt" data-testid="import-prompt">
+        <p>
+            <strong>@_pendingImport.Passages.Count</strong> passage(s) found in that file.
+            What should happen to the @Store.Passages.Count already here?
+        </p>
+        <button class="btn btn-primary" @onclick="() => CompleteImportAsync(ImportMode.Merge)"
+                data-testid="import-merge">
+            Merge - keep both
+        </button>
+        <button class="btn btn-outline-danger" @onclick="() => CompleteImportAsync(ImportMode.Replace)"
+                data-testid="import-replace">
+            Replace - discard what's here
+        </button>
+        <button class="btn btn-link" @onclick="CancelImport">Cancel</button>
+    </div>
+}
+
+@if (Store.Passages.Count == 0)
+{
+    <p class="empty-state" data-testid="library-empty">
+        Nothing here yet. Import a passage or write your own to get started.
+    </p>
+}
+else
+{
+    <ul class="passage-list" data-testid="passage-list">
+        @foreach (var passage in Store.Passages)
+        {
+            <li class="passage-card" data-testid="passage-card" data-passage-id="@passage.Id">
+                <div class="passage-card-main">
+                    <h2 class="passage-title">@passage.Title</h2>
+                    <p class="passage-meta">
+                        @SourceLabel(passage.Source)
+                        @if (!string.IsNullOrWhiteSpace(passage.TranslationName))
+                        {
+                            <span> &middot; @passage.TranslationName</span>
+                        }
+                        <span> &middot; @WordCount(passage) words</span>
+                    </p>
+                    <p class="passage-preview">@Preview(passage.Text)</p>
+                </div>
+                <div class="passage-card-actions">
+                    <a class="btn btn-sm btn-primary" href="@Mode.Link($"practice/{passage.Id}")"
+                       data-testid="practice-link">Practice</a>
+                    <button class="btn btn-sm btn-outline-danger"
+                            @onclick="() => DeleteAsync(passage)" data-testid="delete-passage">
+                        Delete
+                    </button>
+                </div>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private LibrarySnapshot? _pendingImport;
+    private string? _message;
+    private bool _isError;
+
+    protected override void OnInitialized() => Store.Changed += OnLibraryChanged;
+
+    public void Dispose() => Store.Changed -= OnLibraryChanged;
+
+    private void OnLibraryChanged() => InvokeAsync(StateHasChanged);
+
+    private static string SourceLabel(PassageSource source) => source switch
+    {
+        PassageSource.BibleApi => "Imported",
+        PassageSource.Dictated => "Dictated",
+        _ => "Written",
+    };
+
+    private static int WordCount(Passage passage) => Tokenizer.Tokenize(passage.Text).WordCount;
+
+    private static string Preview(string text) =>
+        text.Length <= 140 ? text : text[..140].TrimEnd() + "...";
+
+    private async Task ExportAsync()
+    {
+        await Store.ExportToAsync(SaveFile);
+        Show("Exported. Check your downloads.", isError: false);
+    }
+
+    /// <summary>
+    /// Reads the chosen file and parses it, but does not apply it yet — the user
+    /// still has to say whether it should merge or replace, and a malformed file
+    /// should be caught before they are asked.
+    /// </summary>
+    private async Task OnFileChosenAsync(InputFileChangeEventArgs args)
+    {
+        _pendingImport = null;
+        _message = null;
+
+        try
+        {
+            // 5 MB ceiling: comfortably above any real library, low enough that a
+            // wrong file cannot exhaust memory.
+            await using var stream = args.File.OpenReadStream(5 * 1024 * 1024);
+            using var reader = new StreamReader(stream);
+            var json = await reader.ReadToEndAsync();
+
+            _pendingImport = SnapshotSerializer.Deserialize(json);
+
+            if (_pendingImport.IsEmpty)
+            {
+                _pendingImport = null;
+                Show("That file has no passages in it.", isError: true);
+            }
+        }
+        catch (SaveFileFormatException ex)
+        {
+            Show(ex.Message, isError: true);
+        }
+        catch (Exception ex)
+        {
+            Show($"That file could not be read: {ex.Message}", isError: true);
+        }
+    }
+
+    private async Task CompleteImportAsync(ImportMode mode)
+    {
+        if (_pendingImport is null)
+        {
+            return;
+        }
+
+        var result = await Store.ImportAsync(_pendingImport, mode);
+        _pendingImport = null;
+
+        Show(
+            mode == ImportMode.Replace
+                ? $"Replaced the library with {result.Added} passage(s)."
+                : $"Added {result.Added}, updated {result.Updated}, skipped {result.Skipped} already up to date.",
+            isError: false);
+    }
+
+    private void CancelImport()
+    {
+        _pendingImport = null;
+        _message = null;
+    }
+
+    private async Task DeleteAsync(Passage passage)
+    {
+        await Store.DeletePassageAsync(passage.Id);
+        Show($"Deleted \"{passage.Title}\".", isError: false);
+    }
+
+    private void Show(string message, bool isError)
+    {
+        _message = message;
+        _isError = isError;
+    }
+}

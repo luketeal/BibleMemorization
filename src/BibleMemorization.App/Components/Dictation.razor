@@ -1,0 +1,125 @@
+@implements IDisposable
+@inject ISpeechRecognizer Recognizer
+@inject AppMode Mode
+
+<div class="dictation" data-testid="dictation">
+    @if (_supportChecked && !_isSupported)
+    {
+        <div class="alert alert-warning" data-testid="dictation-unsupported">
+            <strong>Dictation isn't available in this browser.</strong>
+            Speech recognition works in Chrome, Edge and Safari, but Firefox has no
+            support for it. Typing works everywhere.
+        </div>
+    }
+    else
+    {
+        <button class="btn @(IsListening ? "btn-danger" : "btn-outline-primary")"
+                @onclick="ToggleAsync" data-testid="dictation-toggle">
+            @(IsListening ? "Stop dictating" : "Dictate with your voice")
+        </button>
+
+        @if (IsListening)
+        {
+            <span class="dictation-status" data-testid="dictation-status">
+                Listening&hellip; @(_interim.Length > 0 ? $"\"{_interim}\"" : "say something")
+            </span>
+        }
+
+        @if (Mode.IsLive)
+        {
+            <p class="field-hint">
+                Your browser may send audio to its speech service to transcribe it.
+            </p>
+        }
+    }
+
+    @if (_error is not null)
+    {
+        <div class="alert alert-danger" data-testid="dictation-error">@_error</div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback<string> OnTextDictated { get; set; }
+
+    private string _interim = string.Empty;
+    private string? _error;
+    private bool _isSupported;
+    private bool _supportChecked;
+
+    private bool IsListening => Recognizer.IsListening;
+
+    protected override void OnInitialized()
+    {
+        Recognizer.TranscriptReceived += OnTranscript;
+        Recognizer.Ended += OnEnded;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        // Support cannot be read synchronously, so it is probed once after the first
+        // render and the component re-renders with the answer.
+        _isSupported = Recognizer is WebSpeechRecognizer web
+            ? await web.ProbeSupportAsync()
+            : Recognizer.IsSupported;
+
+        _supportChecked = true;
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        Recognizer.TranscriptReceived -= OnTranscript;
+        Recognizer.Ended -= OnEnded;
+
+        if (Recognizer.IsListening)
+        {
+            _ = Recognizer.StopAsync();
+        }
+    }
+
+    private async Task ToggleAsync()
+    {
+        _error = null;
+
+        if (IsListening)
+        {
+            await Recognizer.StopAsync();
+        }
+        else
+        {
+            _interim = string.Empty;
+            await Recognizer.StartAsync();
+        }
+    }
+
+    private void OnTranscript(SpeechTranscript transcript)
+    {
+        if (transcript.IsFinal)
+        {
+            // Only committed text is kept. Interim guesses change as the recognizer
+            // revises them, so appending one would duplicate words.
+            _interim = string.Empty;
+            _ = OnTextDictated.InvokeAsync(transcript.Text);
+        }
+        else
+        {
+            _interim = transcript.Text;
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnEnded(string? error)
+    {
+        _interim = string.Empty;
+        _error = error is null ? null : $"Dictation stopped: {error}";
+        InvokeAsync(StateHasChanged);
+    }
+}

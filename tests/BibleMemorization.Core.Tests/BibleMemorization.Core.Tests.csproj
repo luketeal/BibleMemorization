@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\BibleMemorization.Core\BibleMemorization.Core.csproj" />
+    <ProjectReference Include="..\..\src\BibleMemorization.App\BibleMemorization.App.csproj" />
   </ItemGroup>
 
 </Project>

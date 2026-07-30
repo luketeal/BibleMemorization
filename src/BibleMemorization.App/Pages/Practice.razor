@@ -1,0 +1,26 @@
+@page "/practice/{PassageId:guid}"
+@inject LibraryService Library
+
+<PageTitle>Practice - Bible Memorization</PageTitle>
+
+<h1 data-testid="practice-heading">@(_passage?.Title ?? "Practice")</h1>
+
+<DemoBanner />
+
+@if (_passage is null)
+{
+    <p class="empty-state" data-testid="practice-missing">That passage isn't in your library.</p>
+}
+else
+{
+    <p class="empty-state">Coming next.</p>
+}
+
+@code {
+    [Parameter]
+    public Guid PassageId { get; set; }
+
+    private Passage? _passage;
+
+    protected override void OnParametersSet() => _passage = Library.FindPassage(PassageId);
+}

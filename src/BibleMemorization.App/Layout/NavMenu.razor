@@ -1,3 +1,5 @@
+@inject AppMode Mode
+
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">Bible Memorization</a>
@@ -10,9 +12,19 @@
 <div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
     <nav class="nav flex-column">
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All" data-testid="nav-home">
-                Home
-            </NavLink>
+            <NavLink class="nav-link" href="@Href("")" Match="NavLinkMatch.All" data-testid="nav-home">Home</NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="@Href("library")" data-testid="nav-library">Library</NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="@Href("import")" data-testid="nav-import">Import</NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="@Href("compose")" data-testid="nav-compose">Write your own</NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="@Href("settings")" data-testid="nav-settings">Settings</NavLink>
         </div>
     </nav>
 </div>
@@ -22,8 +34,7 @@
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
-    private void ToggleNavMenu()
-    {
-        collapseNavMenu = !collapseNavMenu;
-    }
+    private string Href(string path) => Mode.Link(path);
+
+    private void ToggleNavMenu() => collapseNavMenu = !collapseNavMenu;
 }
