@@ -1,0 +1,351 @@
+@page "/import"
+@inject IBibleClient Bible
+@inject LibraryService Store
+@inject NavigationManager Navigation
+@inject AppMode Mode
+
+<PageTitle>Import - Bible Memorization</PageTitle>
+
+<h1 data-testid="import-heading">Import a passage</h1>
+
+<DemoBanner />
+
+@if (_loadError is not null)
+{
+    <div class="alert alert-danger" data-testid="import-error">@_loadError</div>
+}
+
+<div class="import-grid">
+    <section class="import-panel">
+        <h2>By reference</h2>
+        <div class="form-group">
+            <label for="reference-box">Type a reference</label>
+            @* maxlength caps what the parser is ever asked to chew on. The longest real
+               reference is a couple of dozen characters, so 120 is generous. *@
+            <input id="reference-box" class="form-control" @bind="_referenceText" @bind:event="oninput"
+                   maxlength="120" @onkeydown="OnReferenceKeyDown" placeholder="John 3:16-18"
+                   data-testid="reference-box" />
+            <p class="field-hint">
+                Works with "John 3:16", "John 3:16-18", "1 Cor 13" or "Psalm 23".
+            </p>
+        </div>
+
+        @if (_referenceError is not null)
+        {
+            <div class="alert alert-warning" data-testid="reference-error">@_referenceError</div>
+        }
+
+        <button class="btn btn-primary" @onclick="LookUpReferenceAsync"
+                disabled="@(_busy || string.IsNullOrWhiteSpace(_referenceText))" data-testid="reference-lookup">
+            Look it up
+        </button>
+    </section>
+
+    <section class="import-panel">
+        <h2>By browsing</h2>
+
+        <div class="form-group">
+            <label for="translation-picker">Translation</label>
+            <select id="translation-picker" class="form-select" value="@_translationId"
+                    @onchange="OnTranslationChangedAsync" data-testid="translation-picker">
+                @foreach (var translation in _translations)
+                {
+                    <option value="@translation.Id">@translation.DisplayName</option>
+                }
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="book-picker">Book</label>
+            <select id="book-picker" class="form-select" value="@_bookId"
+                    @onchange="OnBookChanged" data-testid="book-picker">
+                @foreach (var book in _books)
+                {
+                    <option value="@book.Id">@book.DisplayName</option>
+                }
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="chapter-picker">Chapter</label>
+            <select id="chapter-picker" class="form-select" value="@_chapter"
+                    @onchange="e => _chapter = ToInt(e.Value, 1)" data-testid="chapter-picker">
+                @for (var c = 1; c <= ChapterCount; c++)
+                {
+                    var chapter = c;
+                    <option value="@chapter">@chapter</option>
+                }
+            </select>
+        </div>
+
+        <button class="btn btn-primary" @onclick="LoadChapterAsync" disabled="@_busy" data-testid="browse-lookup">
+            Load chapter
+        </button>
+    </section>
+</div>
+
+@if (_busy)
+{
+    <p class="empty-state" data-testid="import-busy">Fetching&hellip;</p>
+}
+
+@if (_preview is not null)
+{
+    <section class="preview-panel" data-testid="import-preview">
+        <h2>@_preview.Reference</h2>
+        <p class="passage-meta">@_preview.TranslationName</p>
+
+        @if (_verses.Count > 1)
+        {
+            <div class="verse-range">
+                <label>
+                    From verse
+                    <select class="form-select-inline" value="@_firstVerse"
+                            @onchange="e => SetRange(ToInt(e.Value, FirstAvailableVerse), _lastVerse)"
+                            data-testid="first-verse">
+                        @foreach (var verse in _verses)
+                        {
+                            <option value="@verse.Number">@verse.Number</option>
+                        }
+                    </select>
+                </label>
+                <label>
+                    to
+                    <select class="form-select-inline" value="@_lastVerse"
+                            @onchange="e => SetRange(_firstVerse, ToInt(e.Value, LastAvailableVerse))"
+                            data-testid="last-verse">
+                        @foreach (var verse in _verses)
+                        {
+                            <option value="@verse.Number">@verse.Number</option>
+                        }
+                    </select>
+                </label>
+            </div>
+        }
+
+        <blockquote class="preview-text" data-testid="preview-text">@_preview.Text</blockquote>
+
+        <div class="toolbar">
+            <button class="btn btn-primary" @onclick="SaveAsync" data-testid="import-save">
+                Add to library
+            </button>
+            <button class="btn btn-link" @onclick="() => _preview = null">Discard</button>
+        </div>
+    </section>
+}
+
+@code {
+    private IReadOnlyList<BibleTranslation> _translations = [];
+    private IReadOnlyList<BibleBook> _books = [];
+    private IReadOnlyList<Verse> _verses = [];
+
+    private string _translationId = string.Empty;
+    private string _bookId = string.Empty;
+    private int _chapter = 1;
+
+    private int _firstVerse;
+    private int _lastVerse;
+
+    private string _referenceText = string.Empty;
+    private string? _referenceError;
+    private string? _loadError;
+    private bool _busy;
+
+    private PassageText? _preview;
+
+    private int ChapterCount => _books.FirstOrDefault(b => b.Id == _bookId)?.NumberOfChapters ?? 1;
+
+    private int FirstAvailableVerse => _verses.Count == 0 ? 0 : _verses[0].Number;
+
+    private int LastAvailableVerse => _verses.Count == 0 ? 0 : _verses[^1].Number;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _translations = await Bible.GetTranslationsAsync();
+
+            // Prefer the user's saved default, but only if the source actually offers
+            // it — demo mode carries a much shorter list than the live API.
+            _translationId = _translations.Any(t => t.Id == Store.Settings.DefaultTranslation)
+                ? Store.Settings.DefaultTranslation
+                : _translations.FirstOrDefault()?.Id ?? string.Empty;
+
+            await LoadBooksAsync();
+        }
+        catch (Exception ex)
+        {
+            _loadError = Describe(ex);
+        }
+    }
+
+    private async Task LoadBooksAsync()
+    {
+        if (string.IsNullOrEmpty(_translationId))
+        {
+            return;
+        }
+
+        _books = await Bible.GetBooksAsync(_translationId);
+        _bookId = _books.FirstOrDefault()?.Id ?? string.Empty;
+        _chapter = 1;
+    }
+
+    private async Task OnTranslationChangedAsync(ChangeEventArgs e)
+    {
+        _translationId = e.Value?.ToString() ?? string.Empty;
+        _loadError = null;
+
+        try
+        {
+            await LoadBooksAsync();
+        }
+        catch (Exception ex)
+        {
+            _loadError = Describe(ex);
+        }
+    }
+
+    private void OnBookChanged(ChangeEventArgs e)
+    {
+        _bookId = e.Value?.ToString() ?? string.Empty;
+        _chapter = 1;
+    }
+
+    private async Task OnReferenceKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await LookUpReferenceAsync();
+        }
+    }
+
+    private async Task LookUpReferenceAsync()
+    {
+        _referenceError = null;
+
+        var reference = ReferenceParser.Parse(_referenceText, _books);
+
+        if (reference is null)
+        {
+            _referenceError =
+                "That doesn't look like a reference in this translation. Try \"John 3:16\", "
+                + "or use the pickers on the right.";
+            return;
+        }
+
+        // Keep the pickers in step, so the two paths never disagree about what is
+        // on screen.
+        _bookId = reference.BookId;
+        _chapter = reference.Chapter;
+
+        await FetchAsync(reference);
+    }
+
+    private async Task LoadChapterAsync()
+    {
+        var book = _books.FirstOrDefault(b => b.Id == _bookId);
+
+        if (book is null)
+        {
+            return;
+        }
+
+        await FetchAsync(new BibleReference(book.Id, book.DisplayName, _chapter));
+    }
+
+    private async Task FetchAsync(BibleReference reference)
+    {
+        _busy = true;
+        _loadError = null;
+        _preview = null;
+        StateHasChanged();
+
+        try
+        {
+            _verses = await Bible.GetChapterAsync(_translationId, reference.BookId, reference.Chapter);
+
+            if (_verses.Count == 0)
+            {
+                _loadError = Bible.IsLive
+                    ? $"{reference.BookName} {reference.Chapter} came back empty. Try another chapter."
+                    : $"{reference.BookName} {reference.Chapter} isn't one of the chapters bundled for "
+                      + "demo mode. Leave demo mode to fetch any passage.";
+                return;
+            }
+
+            SetRange(
+                reference.FirstVerse ?? FirstAvailableVerse,
+                reference.LastVerse ?? reference.FirstVerse ?? LastAvailableVerse);
+        }
+        catch (Exception ex)
+        {
+            _loadError = Describe(ex);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void SetRange(int first, int last)
+    {
+        if (_verses.Count == 0)
+        {
+            return;
+        }
+
+        _firstVerse = Math.Clamp(first, FirstAvailableVerse, LastAvailableVerse);
+        _lastVerse = Math.Clamp(last, _firstVerse, LastAvailableVerse);
+
+        BuildPreview();
+    }
+
+    private void BuildPreview()
+    {
+        var book = _books.FirstOrDefault(b => b.Id == _bookId);
+        var bookName = book?.DisplayName ?? _bookId;
+
+        var reference = new BibleReference(
+            _bookId,
+            bookName,
+            _chapter,
+            _firstVerse == FirstAvailableVerse && _lastVerse == LastAvailableVerse ? null : _firstVerse,
+            _firstVerse == FirstAvailableVerse && _lastVerse == LastAvailableVerse ? null : _lastVerse);
+
+        var translationName = _translations.FirstOrDefault(t => t.Id == _translationId)?.DisplayName
+            ?? _translationId;
+
+        _preview = new PassageText(
+            reference.ToString(),
+            _translationId,
+            translationName,
+            ChapterFlattener.ToPlainText(_verses, _firstVerse, _lastVerse));
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_preview is null)
+        {
+            return;
+        }
+
+        var passage = await Store.AddPassageAsync(
+            _preview.Reference,
+            _preview.Text,
+            PassageSource.BibleApi,
+            _preview.Reference,
+            _preview.TranslationId,
+            _preview.TranslationName);
+
+        Navigation.NavigateTo(Mode.Link($"practice/{passage.Id}"));
+    }
+
+    private static string Describe(Exception ex) =>
+        ex is HttpRequestException
+            ? "Couldn't reach the Bible service. Check your connection and try again."
+            : $"Something went wrong: {ex.Message}";
+
+    private static int ToInt(object? value, int fallback) =>
+        int.TryParse(value?.ToString(), out var parsed) ? parsed : fallback;
+}

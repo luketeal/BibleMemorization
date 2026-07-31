@@ -1,0 +1,20 @@
+{
+  "translations": [
+    {
+      "id": "eng_kjv",
+      "name": "King James Version",
+      "englishName": "King James Version",
+      "language": "eng",
+      "textDirection": "ltr",
+      "numberOfBooks": 66
+    },
+    {
+      "id": "eng_bsb",
+      "name": "Berean Standard Bible",
+      "englishName": "Berean Standard Bible",
+      "language": "eng",
+      "textDirection": "ltr",
+      "numberOfBooks": 66
+    }
+  ]
+}

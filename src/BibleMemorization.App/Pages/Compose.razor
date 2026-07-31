@@ -1,0 +1,94 @@
+@page "/compose"
+@inject LibraryService Library
+@inject NavigationManager Navigation
+@inject AppMode Mode
+
+<PageTitle>Write your own - Bible Memorization</PageTitle>
+
+<h1 data-testid="compose-heading">Write your own</h1>
+
+<DemoBanner />
+
+<p class="lead">Type anything you want to memorize, or dictate it with your voice.</p>
+
+<div class="form-group">
+    <label for="compose-title">Title</label>
+    <input id="compose-title" class="form-control" @bind="_title" @bind:event="oninput"
+           placeholder="A name you'll recognise in the library" data-testid="compose-title" />
+</div>
+
+<div class="form-group">
+    <label for="compose-text">Text</label>
+    <textarea id="compose-text" class="form-control compose-text" rows="10" @bind="_text" @bind:event="oninput"
+              placeholder="Paste or type the words you want to learn." data-testid="compose-text"></textarea>
+    <p class="field-hint" data-testid="compose-word-count">@WordCount words</p>
+</div>
+
+<Dictation OnTextDictated="AppendDictated" />
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger" data-testid="compose-error">@_error</div>
+}
+
+<div class="toolbar">
+    <button class="btn btn-primary" @onclick="SaveAsync" disabled="@(!CanSave)" data-testid="compose-save">
+        Save to library
+    </button>
+    <a class="btn btn-link" href="@Mode.Link("library")">Cancel</a>
+</div>
+
+@code {
+    private string _title = string.Empty;
+    private string _text = string.Empty;
+    private string? _error;
+    private bool _wasDictated;
+
+    private int WordCount => Tokenizer.Tokenize(_text).WordCount;
+
+    private bool CanSave => !string.IsNullOrWhiteSpace(_text);
+
+    /// <summary>
+    /// Dictated text is appended to whatever is already there rather than replacing
+    /// it, so a user can dictate in several goes and edit between them.
+    /// </summary>
+    private void AppendDictated(string dictated)
+    {
+        if (string.IsNullOrWhiteSpace(dictated))
+        {
+            return;
+        }
+
+        _text = string.IsNullOrWhiteSpace(_text) ? dictated : $"{_text.TrimEnd()} {dictated}";
+        _wasDictated = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        _error = null;
+
+        if (!CanSave)
+        {
+            _error = "Add some text before saving.";
+            return;
+        }
+
+        // A title is a convenience, not a requirement: fall back to the opening words
+        // rather than blocking the save on a field the user does not care about.
+        var title = string.IsNullOrWhiteSpace(_title) ? DeriveTitle(_text) : _title.Trim();
+
+        var passage = await Library.AddPassageAsync(
+            title,
+            _text.Trim(),
+            _wasDictated ? PassageSource.Dictated : PassageSource.Written);
+
+        Navigation.NavigateTo(Mode.Link($"practice/{passage.Id}"));
+    }
+
+    private static string DeriveTitle(string text)
+    {
+        var words = Tokenizer.Tokenize(text).Where(t => t.IsWord).Take(6).Select(t => t.Word);
+        var title = string.Join(' ', words);
+        return string.IsNullOrWhiteSpace(title) ? "Untitled" : title;
+    }
+}

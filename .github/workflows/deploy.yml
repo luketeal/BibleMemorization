@@ -1,0 +1,121 @@
+name: Build and deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment, letting in-progress runs finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  # Repository name, which is also the GitHub Pages sub-path.
+  BASE_PATH: BibleMemorization
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore -c Release
+
+      - name: Unit tests
+        run: dotnet test tests/BibleMemorization.Core.Tests --no-build -c Release --verbosity normal
+
+      # speech.js is the one file no C# test can reach: every suite runs against the
+      # fake recognizer, because headless browsers have no microphone. Node drives the
+      # real module against a stand-in Web Speech API instead.
+      - name: Speech wrapper tests
+        run: node --test tests/speech-js/speech.test.mjs
+
+      # Locally the container already has a matching Chromium and the fixture
+      # points straight at it; CI has no such browser, so install one here.
+      - name: Install Playwright browsers
+        run: pwsh tests/BibleMemorization.E2E/bin/Release/net10.0/playwright.ps1 install chromium --with-deps
+
+      - name: End-to-end tests
+        run: dotnet test tests/BibleMemorization.E2E --no-build -c Release --verbosity normal
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-artifacts
+          path: artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Publish
+        run: dotnet publish src/BibleMemorization.App -c Release -o dist
+
+      # Blazor's index.html ships with <base href="/" />, which only works at a
+      # domain root. GitHub Pages serves this app from /BibleMemorization/, so the
+      # base href must match or every asset request 404s and the page renders blank.
+      - name: Rewrite base href
+        run: |
+          set -euo pipefail
+          sed -i 's|<base href="/" />|<base href="/${{ env.BASE_PATH }}/" />|g' dist/wwwroot/index.html
+          # Fail loudly if the substitution silently matched nothing.
+          grep -q '<base href="/${{ env.BASE_PATH }}/" />' dist/wwwroot/index.html
+          # Drop the pre-compressed copies: they still hold the old base href and
+          # nothing serves them for index.html anyway.
+          rm -f dist/wwwroot/index.html.br dist/wwwroot/index.html.gz
+
+      # The framework script is fingerprinted by the SDK, but stylesheets are not, so
+      # their URLs never change between deploys. A browser holding a cached copy then
+      # renders new markup against old styles — which is how read-along blanks lost
+      # their underline on a phone while looking correct everywhere else. GitHub Pages
+      # will not let us set cache headers, so the URL has to carry a content hash.
+      - name: Cache-bust stylesheets
+        run: |
+          set -euo pipefail
+          for css in "css/app.css" "BibleMemorization.App.styles.css" "lib/bootstrap/dist/css/bootstrap.min.css"; do
+            [ -f "dist/wwwroot/$css" ] || { echo "Missing dist/wwwroot/$css"; exit 1; }
+            hash=$(md5sum "dist/wwwroot/$css" | cut -c1-10)
+            grep -q "$css\"" dist/wwwroot/index.html
+            sed -i "s|$css\"|$css?v=$hash\"|g" dist/wwwroot/index.html
+            grep -q "$css?v=$hash" dist/wwwroot/index.html
+          done
+          grep -o 'href="[^"]*\.css[^"]*"' dist/wwwroot/index.html
+
+      # GitHub Pages serves 404.html for unknown paths. Serving the app shell from
+      # there is what makes client-side routes survive a refresh or a deep link.
+      # Copied after the rewrites above so it carries them too.
+      - name: Add SPA fallback and disable Jekyll
+        run: |
+          cp dist/wwwroot/index.html dist/wwwroot/404.html
+          touch dist/wwwroot/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/wwwroot
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

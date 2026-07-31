@@ -1,0 +1,240 @@
+@implements IAsyncDisposable
+@inject ISpeechSynthesizer Synthesizer
+@inject ISpeechRecognizer Recognizer
+@inject AppMode Mode
+
+<div class="read-along" data-testid="read-along">
+    @if (_supportChecked && !_isSupported)
+    {
+        <div class="alert alert-warning" data-testid="read-along-unsupported">
+            <strong>Read-along needs speech recognition.</strong>
+            Chrome, Edge and Safari have it; Firefox does not. The typed tests work everywhere.
+        </div>
+    }
+    else
+    {
+        <p class="field-hint">
+            The app reads the words still showing and pauses at each blank for you to
+            say the missing ones. Read along out loud with it.
+        </p>
+
+        <div class="toolbar">
+            <button class="btn @(IsRunning ? "btn-danger" : "btn-primary")"
+                    @onclick="ToggleAsync" data-testid="read-along-toggle">
+                @(IsRunning ? "Stop" : "Start read-along")
+            </button>
+
+            @if (IsRunning)
+            {
+                <span class="read-along-phase" data-testid="read-along-phase">@PhaseLabel</span>
+            }
+            else if (Hidden.Count == 0)
+            {
+                <span class="field-hint">Nothing is hidden, so the app will just read it to you.</span>
+            }
+        </div>
+
+        @* The passage reads like the fill-the-blanks view, so you can follow along
+           with your eyes while the app reads. Blanks fill in as you speak them. *@
+        <div class="passage-view read-along-view" data-testid="read-along-passage">
+            @foreach (var token in Passage)
+            {
+                @token.Leading
+
+                @if (!token.IsWord)
+                {
+                    <span class="pv-punct">@token.Trimmed</span>
+                }
+                else
+                {
+                    <span class="pv-word @WordClass(token.Index)">
+                        <span class="pv-punct">@token.Prefix</span>
+
+                        @if (!Hidden.Contains(token.Index))
+                        {
+                            <span class="pv-visible-static">@token.Word</span>
+                        }
+                        else if (Answered.TryGetValue(token.Index, out var correct))
+                        {
+                            <span class="ra-fill @(correct ? "ra-fill-correct" : "ra-fill-missed")"
+                                  data-testid="ra-filled" data-token-index="@token.Index">@token.Word</span>
+                        }
+                        else if (IsBeingAnswered(token.Index))
+                        {
+                            <span class="ra-fill ra-fill-live" data-testid="ra-live"
+                                  style="@BlankStyle(token)">
+                                @if (LiveText.Length == 0)
+                                {
+                                    @* A cursor, so an empty live blank still reads
+                                       as "your turn" rather than as a stray box. *@
+                                    <span class="ra-caret" aria-hidden="true"></span>
+                                }
+                                else
+                                {
+                                    @LiveText
+                                }
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="ra-blank" data-testid="ra-blank"
+                                  data-token-index="@token.Index" style="@BlankStyle(token)"></span>
+                        }
+
+                        <span class="pv-punct">@token.Suffix</span>
+                    </span>
+                }
+            }
+        </div>
+
+        @if (_coordinator?.Phase == ReadAlongPhase.Finished)
+        {
+            <p class="read-along-done" data-testid="read-along-done">
+                Finished &mdash; @_coordinator.Outcomes.Count(o => o.Correct)
+                of @_coordinator.Outcomes.Count filled in.
+            </p>
+        }
+
+        @if (Misheard.Count > 0)
+        {
+            <ul class="read-along-log" data-testid="read-along-log">
+                @foreach (var outcome in Misheard)
+                {
+                    <li class="ra-missed">
+                        <strong>@outcome.Expected</strong>
+                        @if (outcome.Heard is not null)
+                        {
+                            <span> &mdash; heard "@outcome.Heard"</span>
+                        }
+                        else
+                        {
+                            <span> &mdash; nothing heard</span>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+
+        @if (Mode.IsLive)
+        {
+            <p class="field-hint">Your browser may send audio to its speech service to transcribe it.</p>
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public TokenizedPassage Passage { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyCollection<int> Hidden { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public AppSettings Settings { get; set; } = AppSettings.Default;
+
+    private ReadAlongCoordinator? _coordinator;
+    private bool _isSupported;
+    private bool _supportChecked;
+
+    private bool IsRunning => _coordinator?.IsRunning == true;
+
+    private IReadOnlyDictionary<int, bool> Answered =>
+        _coordinator?.TokenOutcomes ?? new Dictionary<int, bool>();
+
+    private IReadOnlyList<ListenOutcome> Misheard =>
+        _coordinator is null ? [] : [.. _coordinator.Outcomes.Where(o => !o.Correct)];
+
+    /// <summary>What to show in the blank being answered right now.</summary>
+    private string LiveText => _coordinator?.LiveTranscript ?? string.Empty;
+
+    private string PhaseLabel => _coordinator?.Phase switch
+    {
+        ReadAlongPhase.Speaking => "Reading aloud…",
+        ReadAlongPhase.Pausing => "Your turn…",
+        ReadAlongPhase.Listening => "Listening",
+        _ => string.Empty,
+    };
+
+    private bool IsBeingAnswered(int tokenIndex) =>
+        _coordinator?.Phase is ReadAlongPhase.Listening or ReadAlongPhase.Pausing
+        && _coordinator.CurrentTokenIndices.Contains(tokenIndex);
+
+    /// <summary>
+    /// Highlights the run the app is reading right now, so the eye can follow the
+    /// voice rather than hunting for the place.
+    /// </summary>
+    private string? WordClass(int tokenIndex)
+    {
+        if (_coordinator is null || !IsRunning)
+        {
+            return null;
+        }
+
+        if (_coordinator.Phase == ReadAlongPhase.Speaking
+            && _coordinator.CurrentTokenIndices.Contains(tokenIndex))
+        {
+            return "ra-speaking";
+        }
+
+        return IsBeingAnswered(tokenIndex) ? "ra-awaiting" : null;
+    }
+
+    /// <summary>Sizes an unanswered blank to the word it hides, as the study view does.</summary>
+    private static string BlankStyle(Token token)
+    {
+        var width = Math.Max(token.Word.Length, 2);
+        return string.Create(System.Globalization.CultureInfo.InvariantCulture, $"min-width: {width * 0.62m:0.##}em");
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        _isSupported = Recognizer is WebSpeechRecognizer web
+            ? await web.ProbeSupportAsync()
+            : Recognizer.IsSupported;
+
+        _supportChecked = true;
+        StateHasChanged();
+    }
+
+    private async Task ToggleAsync()
+    {
+        if (IsRunning)
+        {
+            await _coordinator!.StopAsync();
+            StateHasChanged();
+            return;
+        }
+
+        await DisposeCoordinatorAsync();
+
+        _coordinator = new ReadAlongCoordinator(Synthesizer, Recognizer);
+        _coordinator.Changed += OnCoordinatorChanged;
+
+        // Deliberately not awaited: the run drives itself through speak and listen
+        // phases while the UI keeps redrawing from the Changed event.
+        _ = _coordinator.RunAsync(Passage, Hidden, Settings);
+
+        StateHasChanged();
+    }
+
+    private void OnCoordinatorChanged() => InvokeAsync(StateHasChanged);
+
+    private async Task DisposeCoordinatorAsync()
+    {
+        if (_coordinator is null)
+        {
+            return;
+        }
+
+        _coordinator.Changed -= OnCoordinatorChanged;
+        await _coordinator.DisposeAsync();
+        _coordinator = null;
+    }
+
+    public ValueTask DisposeAsync() => new(DisposeCoordinatorAsync());
+}

@@ -1,0 +1,60 @@
+{
+  "_comment": "Offline sample data, King James Version (public domain). Deliberately includes a heading, a line break, a split verse and a footnote reference so the flattener's handling of each is exercised.",
+  "chapter": {
+    "number": 3,
+    "content": [
+      { "type": "heading", "content": ["For God So Loved the World"] },
+      {
+        "type": "verse",
+        "number": 16,
+        "content": [
+          "For God so loved the world,",
+          { "text": "that he gave his only begotten Son," },
+          { "noteId": 0 },
+          "that whosoever believeth in him should not perish, but have everlasting life."
+        ]
+      },
+      { "type": "line_break" },
+      {
+        "type": "verse",
+        "number": 17,
+        "content": [
+          "For God sent not his Son into the world to condemn the world; but that the world through him might be saved."
+        ]
+      },
+      {
+        "type": "verse",
+        "number": 18,
+        "content": [
+          "He that believeth on him is not condemned: but he that believeth not is condemned already, because he hath not believed in the name of the only begotten Son of God."
+        ]
+      },
+      { "type": "heading", "content": ["Light and Darkness"] },
+      {
+        "type": "verse",
+        "number": 19,
+        "content": [
+          "And this is the condemnation, that light is come into the world, and men loved darkness rather than light, because their deeds were evil."
+        ]
+      },
+      {
+        "type": "verse",
+        "number": 20,
+        "content": [
+          "For every one that doeth evil hateth the light, neither cometh to the light, lest his deeds should be reproved."
+        ]
+      },
+      {
+        "type": "verse",
+        "number": 21,
+        "content": [
+          { "text": "But he that doeth truth cometh to the light, that his deeds may be made manifest,", "wordsOfJesus": true },
+          { "text": "that they are wrought in God.", "wordsOfJesus": true }
+        ]
+      }
+    ],
+    "footnotes": [
+      { "noteId": 0, "text": "Or: so loved the world, that he gave his one and only Son" }
+    ]
+  }
+}

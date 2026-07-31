@@ -1,0 +1,666 @@
+html, body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+h1:focus {
+    outline: none;
+}
+
+a, .btn-link {
+    color: #0071c1;
+}
+
+.btn-primary {
+    color: #fff;
+    background-color: #1b6ec2;
+    border-color: #1861ac;
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+.content {
+    padding-top: 1.1rem;
+}
+
+.valid.modified:not([type=checkbox]) {
+    outline: 1px solid #26b050;
+}
+
+.invalid {
+    outline: 1px solid red;
+}
+
+.validation-message {
+    color: red;
+}
+
+#blazor-error-ui {
+    color-scheme: light only;
+    background: lightyellow;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    box-sizing: border-box;
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+
+    #blazor-error-ui .dismiss {
+        cursor: pointer;
+        position: absolute;
+        right: 0.75rem;
+        top: 0.5rem;
+    }
+
+.blazor-error-boundary {
+    background: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTYiIGhlaWdodD0iNDkiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIG92ZXJmbG93PSJoaWRkZW4iPjxkZWZzPjxjbGlwUGF0aCBpZD0iY2xpcDAiPjxyZWN0IHg9IjIzNSIgeT0iNTEiIHdpZHRoPSI1NiIgaGVpZ2h0PSI0OSIvPjwvY2xpcFBhdGg+PC9kZWZzPjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMCkiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yMzUgLTUxKSI+PHBhdGggZD0iTTI2My41MDYgNTFDMjY0LjcxNyA1MSAyNjUuODEzIDUxLjQ4MzcgMjY2LjYwNiA1Mi4yNjU4TDI2Ny4wNTIgNTIuNzk4NyAyNjcuNTM5IDUzLjYyODMgMjkwLjE4NSA5Mi4xODMxIDI5MC41NDUgOTIuNzk1IDI5MC42NTYgOTIuOTk2QzI5MC44NzcgOTMuNTEzIDI5MSA5NC4wODE1IDI5MSA5NC42NzgyIDI5MSA5Ny4wNjUxIDI4OS4wMzggOTkgMjg2LjYxNyA5OUwyNDAuMzgzIDk5QzIzNy45NjMgOTkgMjM2IDk3LjA2NTEgMjM2IDk0LjY3ODIgMjM2IDk0LjM3OTkgMjM2LjAzMSA5NC4wODg2IDIzNi4wODkgOTMuODA3MkwyMzYuMzM4IDkzLjAxNjIgMjM2Ljg1OCA5Mi4xMzE0IDI1OS40NzMgNTMuNjI5NCAyNTkuOTYxIDUyLjc5ODUgMjYwLjQwNyA1Mi4yNjU4QzI2MS4yIDUxLjQ4MzcgMjYyLjI5NiA1MSAyNjMuNTA2IDUxWk0yNjMuNTg2IDY2LjAxODNDMjYwLjczNyA2Ni4wMTgzIDI1OS4zMTMgNjcuMTI0NSAyNTkuMzEzIDY5LjMzNyAyNTkuMzEzIDY5LjYxMDIgMjU5LjMzMiA2OS44NjA4IDI1OS4zNzEgNzAuMDg4N0wyNjEuNzk1IDg0LjAxNjEgMjY1LjM4IDg0LjAxNjEgMjY3LjgyMSA2OS43NDc1QzI2Ny44NiA2OS43MzA5IDI2Ny44NzkgNjkuNTg3NyAyNjcuODc5IDY5LjMxNzkgMjY3Ljg3OSA2Ny4xMTgyIDI2Ni40NDggNjYuMDE4MyAyNjMuNTg2IDY2LjAxODNaTTI2My41NzYgODYuMDU0N0MyNjEuMDQ5IDg2LjA1NDcgMjU5Ljc4NiA4Ny4zMDA1IDI1OS43ODYgODkuNzkyMSAyNTkuNzg2IDkyLjI4MzcgMjYxLjA0OSA5My41Mjk1IDI2My41NzYgOTMuNTI5NSAyNjYuMTE2IDkzLjUyOTUgMjY3LjM4NyA5Mi4yODM3IDI2Ny4zODcgODkuNzkyMSAyNjcuMzg3IDg3LjMwMDUgMjY2LjExNiA4Ni4wNTQ3IDI2My41NzYgODYuMDU0N1oiIGZpbGw9IiNGRkU1MDAiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjwvZz48L3N2Zz4=) no-repeat 1rem/1.8rem, #b32121;
+    padding: 1rem 1rem 1rem 3.7rem;
+    color: white;
+}
+
+    .blazor-error-boundary::after {
+        content: "An error has occurred."
+    }
+
+.loading-progress {
+    position: absolute;
+    display: block;
+    width: 8rem;
+    height: 8rem;
+    inset: 20vh 0 auto 0;
+    margin: 0 auto 0 auto;
+}
+
+    .loading-progress circle {
+        fill: none;
+        stroke: #e0e0e0;
+        stroke-width: 0.6rem;
+        transform-origin: 50% 50%;
+        transform: rotate(-90deg);
+    }
+
+        .loading-progress circle:last-child {
+            stroke: #1b6ec2;
+            stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
+            transition: stroke-dasharray 0.05s ease-in-out;
+        }
+
+.loading-progress-text {
+    position: absolute;
+    text-align: center;
+    font-weight: bold;
+    inset: calc(20vh + 3.25rem) 0 auto 0.2rem;
+}
+
+    .loading-progress-text:after {
+        content: var(--blazor-load-percentage-text, "Loading");
+    }
+
+code {
+    color: #c02d76;
+}
+
+.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
+    color: var(--bs-secondary-color);
+    text-align: end;
+}
+
+.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
+    text-align: start;
+}
+/* ---- Bible Memorization ---- */
+.home-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.home-card {
+    display: block;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+    background: #fff;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.home-card:hover {
+    border-color: #0d6efd;
+    box-shadow: 0 2px 8px rgba(13, 110, 253, 0.12);
+    text-decoration: none;
+}
+
+.home-card h2 { color: #0a58ca; }
+
+.home-notes {
+    margin-top: 2rem;
+    max-width: 40rem;
+}
+
+.home-notes h2 { font-size: 1.05rem; }
+
+.home-notes ul { color: #495057; padding-left: 1.1rem; }
+
+.home-notes li { margin-bottom: 0.5rem; }
+
+.home-card h2 {
+    font-size: 1.15rem;
+    margin-bottom: 0.5rem;
+}
+
+.home-card p {
+    margin: 0;
+    color: #495057;
+}
+
+.build-tag {
+    font-weight: 600;
+    color: #495057;
+}
+
+/* ---- Layout helpers ---- */
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    margin: 1rem 0;
+}
+
+.toolbar-spacer { flex: 1 1 auto; }
+
+.empty-state {
+    color: #6c757d;
+    font-style: italic;
+    padding: 2rem 0;
+}
+
+.field-hint {
+    color: #6c757d;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.form-group { margin-bottom: 1rem; }
+
+.demo-banner {
+    background: #fff3cd;
+    border: 1px solid #ffe69c;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.demo-banner a { margin-left: 0.5rem; }
+
+/* ---- Library ---- */
+.passage-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.75rem;
+}
+
+.passage-card {
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    align-items: flex-start;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background: #fff;
+}
+
+.passage-card-main { min-width: 0; }
+
+.passage-title {
+    font-size: 1.1rem;
+    margin: 0 0 0.25rem;
+}
+
+.passage-meta {
+    color: #6c757d;
+    font-size: 0.85rem;
+    margin: 0 0 0.5rem;
+}
+
+.passage-preview {
+    margin: 0;
+    color: #343a40;
+}
+
+.passage-card-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.import-prompt {
+    border: 1px solid #b6d4fe;
+    background: #e7f1ff;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* ---- Compose ---- */
+.compose-text {
+    font-size: 1.05rem;
+    line-height: 1.6;
+}
+
+.dictation { margin: 1rem 0; }
+
+.dictation-status {
+    margin-left: 0.75rem;
+    color: #6c757d;
+}
+
+/* ---- Settings ---- */
+.settings-section {
+    border-top: 1px solid #dee2e6;
+    padding: 1.25rem 0;
+    max-width: 40rem;
+}
+
+.settings-section h2 { font-size: 1.15rem; }
+
+.danger-zone h2 { color: #b02a37; }
+
+@media (max-width: 640px) {
+    .passage-card { flex-direction: column; }
+    .passage-card-actions { flex-direction: row; }
+}
+
+/* ---- Import ---- */
+.import-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.import-panel {
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background: #fff;
+}
+
+.import-panel h2 {
+    font-size: 1.05rem;
+    margin-bottom: 0.75rem;
+}
+
+.preview-panel {
+    border: 1px solid #b6d4fe;
+    background: #f8fbff;
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+    margin-top: 1rem;
+}
+
+.preview-panel h2 { font-size: 1.15rem; margin-bottom: 0.25rem; }
+
+.preview-text {
+    font-size: 1.1rem;
+    line-height: 1.7;
+    border-left: 3px solid #b6d4fe;
+    padding-left: 1rem;
+    margin: 1rem 0;
+    color: #212529;
+}
+
+.verse-range {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.form-select-inline {
+    display: inline-block;
+    width: auto;
+    padding: 0.25rem 1.75rem 0.25rem 0.5rem;
+    margin-left: 0.35rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+}
+
+/* ---- Practice ---- */
+.technique-picker {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin: 0.75rem 0 0.25rem;
+}
+
+.mode-tabs {
+    display: flex;
+    gap: 0.25rem;
+    border-bottom: 2px solid #dee2e6;
+    margin: 1rem 0;
+}
+
+.mode-tab {
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    color: #495057;
+    cursor: pointer;
+    margin-bottom: -2px;
+}
+
+.mode-tab.active {
+    color: #0d6efd;
+    border-bottom-color: #0d6efd;
+    font-weight: 600;
+}
+
+.passage-view {
+    font-size: 1.25rem;
+    line-height: 2.4;
+    padding: 1.25rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    background: #fff;
+    white-space: pre-wrap;
+    max-width: 46rem;
+}
+
+.pv-word { white-space: nowrap; }
+
+.pv-punct { color: #212529; }
+
+.pv-visible,
+.pv-visible-static {
+    background: none;
+    border: none;
+    padding: 0 0.05em;
+    font: inherit;
+    color: #212529;
+    border-radius: 0.2rem;
+}
+
+.pv-visible { cursor: default; }
+
+.interactive .pv-visible { cursor: pointer; }
+
+.interactive .pv-visible:hover {
+    background: #ffe69c;
+    outline: 2px solid #ffda6a;
+}
+
+/* A blank keeps the width of the word it hides, so its length still cues recall. */
+/*
+   One box for every inline slot — an empty blank, a one-letter hint, an input.
+   Height and alignment are pinned here rather than left to the content, because
+   otherwise a hint takes its height from the line box while an empty blank does not,
+   and the two end up different sizes with their underlines at different heights.
+   The explicit line-height also gives an empty blank a real baseline, which an empty
+   inline-block otherwise lacks.
+*/
+.pv-slot,
+.pv-blank,
+.pv-hint,
+.pv-input {
+    display: inline-block;
+    box-sizing: border-box;
+    height: 1.7em;
+    line-height: 1.7em;
+    padding: 0 0.2em;
+    vertical-align: middle;
+    border: none;
+    border-bottom: 2px solid #0d6efd;
+    border-radius: 0.15rem 0.15rem 0 0;
+    background: #eef4ff;
+}
+
+.pv-blank {
+    cursor: default;
+}
+
+.interactive .pv-blank { cursor: pointer; }
+
+.interactive .pv-blank:hover { background: #cfe2ff; }
+
+/*
+   An initial standing in for a whole word. It is widened to the word's own length
+   and the letter sits at the left, so the trailing underline shows how much word is
+   missing — the length cue is a real part of what makes initials recallable.
+*/
+.pv-hint {
+    /* A button so the initial can be tapped away, but it should read as text. */
+    font: inherit;
+    color: #0a58ca;
+    font-weight: 600;
+    text-align: left;
+    cursor: default;
+}
+
+.interactive .pv-hint { cursor: pointer; }
+
+.interactive .pv-hint:hover {
+    background: #cfe2ff;
+    outline: 2px solid #9ec5fe;
+}
+
+/*
+   The initial shown beside its input under first letter. Styled as a prompt rather
+   than as text the user typed, so it never reads as part of their answer.
+*/
+.pv-cue {
+    display: inline-block;
+    font-weight: 700;
+    color: #0a58ca;
+    margin-right: 0.1em;
+}
+
+.pv-input {
+    font: inherit;
+    background: #f8fbff;
+    text-align: left;
+}
+
+.pv-input:focus {
+    outline: 2px solid #0d6efd;
+    background: #fff;
+}
+
+.pv-input-correct { border-bottom-color: #198754; background: #d1e7dd; }
+
+.pv-input-wrong { border-bottom-color: #dc3545; background: #f8d7da; }
+
+.pv-correct .pv-visible,
+.pv-correct .pv-visible-static { background: #d1e7dd; }
+
+.pv-wrong .pv-visible,
+.pv-wrong .pv-visible-static { background: #f8d7da; text-decoration: underline wavy #dc3545; }
+
+.pv-missing .pv-visible,
+.pv-missing .pv-visible-static { background: #fff3cd; color: #664d03; }
+
+/* ---- Results ---- */
+.results-panel {
+    margin-top: 1.5rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+    background: #fbfbfb;
+}
+
+.results-panel h2 { font-size: 1.25rem; }
+
+.results-perfect { color: #146c43; font-weight: 600; }
+
+.results-legend {
+    list-style: none;
+    display: flex;
+    gap: 1rem;
+    padding: 0;
+    margin: 0.75rem 0;
+    font-size: 0.85rem;
+    color: #495057;
+    flex-wrap: wrap;
+}
+
+.results-legend .swatch {
+    display: inline-block;
+    width: 0.9rem;
+    height: 0.9rem;
+    border-radius: 0.2rem;
+    vertical-align: middle;
+    margin-right: 0.25rem;
+}
+
+.results-legend .pv-correct { background: #d1e7dd; }
+.results-legend .pv-wrong { background: #f8d7da; }
+.results-legend .pv-missing { background: #fff3cd; }
+
+.history-panel { margin-top: 1.5rem; max-width: 30rem; }
+
+.history-panel h2 { font-size: 1.05rem; }
+
+.history-panel ul { padding-left: 1.1rem; color: #495057; }
+
+/* ---- Spoken recall ---- */
+.listening-indicator { color: #b02a37; font-weight: 600; }
+
+.heard-text {
+    border-left: 3px solid #ced4da;
+    padding-left: 1rem;
+    color: #495057;
+    font-style: italic;
+}
+
+@media (max-width: 640px) {
+    .passage-view { font-size: 1.1rem; line-height: 2.2; padding: 0.75rem; }
+}
+
+/* ---- Read-along ---- */
+.read-along { margin-top: 0.5rem; }
+
+.read-along-phase {
+    font-weight: 600;
+    color: #0a58ca;
+}
+
+.read-along-view { margin-top: 0.75rem; }
+
+/* An unanswered blank, sized to the word it hides, as in the study view. */
+.read-along-view .ra-blank {
+    display: inline-block;
+    height: 1.35em;
+    vertical-align: baseline;
+    border-bottom: 3px solid #0d6efd;
+    background: #eef4ff;
+    border-radius: 0.15rem 0.15rem 0 0;
+}
+
+.read-along-view .ra-fill {
+    display: inline-block;
+    padding: 0 0.2em;
+    border-bottom: 2px solid transparent;
+    border-radius: 0.2rem;
+    text-align: center;
+}
+
+/* Words appearing as they are spoken, before the answer is judged. */
+.read-along-view .ra-fill-live {
+    background: #fff3cd;
+    border-bottom-color: #ffc107;
+    color: #664d03;
+    font-style: italic;
+    min-height: 1.35em;
+}
+
+.read-along-view .ra-fill-correct {
+    background: #d1e7dd;
+    border-bottom-color: #198754;
+    color: #0f5132;
+}
+
+.read-along-view .ra-fill-missed {
+    background: #f8d7da;
+    border-bottom-color: #dc3545;
+    color: #842029;
+}
+
+/* The run being read aloud, so the eye can follow the voice. */
+.read-along-view .ra-speaking .pv-visible-static {
+    background: #cfe2ff;
+    border-radius: 0.2rem;
+}
+
+/*
+   The blank being asked for right now. It has to be findable at a glance while the
+   user is listening rather than reading, so it is marked far more strongly than the
+   others: amber fill, heavier rule, a halo, and a slow pulse.
+*/
+.read-along-view .ra-awaiting .ra-blank,
+.read-along-view .ra-fill-live {
+    background: #ffe69c;
+    border-bottom: 3px solid #fd7e14;
+    box-shadow: 0 0 0 4px rgba(253, 126, 20, 0.3);
+    animation: ra-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes ra-pulse {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(253, 126, 20, 0.3); }
+    50% { box-shadow: 0 0 0 7px rgba(253, 126, 20, 0.12); }
+}
+
+/* A blinking cursor in the live blank, so an empty one still reads as "your turn". */
+.read-along-view .ra-caret {
+    display: inline-block;
+    width: 2px;
+    height: 1.1em;
+    vertical-align: text-bottom;
+    background: #fd7e14;
+    animation: ra-blink 1s step-end infinite;
+}
+
+@keyframes ra-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .read-along-view .ra-awaiting .ra-blank,
+    .read-along-view .ra-fill-live,
+    .read-along-view .ra-caret {
+        animation: none;
+    }
+}
+
+.read-along-log {
+    list-style: none;
+    padding: 0;
+    margin: 0.75rem 0;
+    max-width: 34rem;
+}
+
+.read-along-log li {
+    padding: 0.35rem 0.6rem;
+    border-radius: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.read-along-log .ra-correct { background: #d1e7dd; }
+
+.read-along-log .ra-missed { background: #f8d7da; }
+
+.read-along-done { font-weight: 600; }

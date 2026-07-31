@@ -1,0 +1,52 @@
+@page "/"
+@inject LibraryService Store
+@inject AppMode Mode
+
+<PageTitle>Bible Memorization</PageTitle>
+
+<h1 data-testid="home-heading">Bible Memorization</h1>
+
+<p class="lead">
+    Learn passages by heart using techniques that gradually take the words away.
+</p>
+
+<DemoBanner />
+
+@if (Store.Passages.Count > 0)
+{
+    <div class="toolbar">
+        <a class="btn btn-primary" href="@Mode.Link("library")" data-testid="home-continue">
+            Continue with @Store.Passages.Count passage@(Store.Passages.Count == 1 ? "" : "s")
+        </a>
+    </div>
+}
+
+<div class="home-grid">
+    <a class="home-card" href="@Mode.Link("import")" data-testid="home-import">
+        <h2>Import a passage</h2>
+        <p>Type a reference like "John 3:16-18", or browse by book and chapter.</p>
+    </a>
+    <a class="home-card" href="@Mode.Link("compose")" data-testid="home-compose">
+        <h2>Write your own</h2>
+        <p>Type anything you want to memorize, or dictate it with your voice.</p>
+    </a>
+    <a class="home-card" href="@Mode.Link("library")" data-testid="home-library">
+        <h2>Practice</h2>
+        <p>Hide words one at a time, then test yourself by typing or speaking.</p>
+    </a>
+</div>
+
+<section class="home-notes">
+    <h2>Two things worth knowing</h2>
+    <ul>
+        <li>
+            Your work is saved in this browser only. It won't follow you to another
+            device, so <a href="@Mode.Link("library")">export a save file</a> if you
+            want to keep it.
+        </li>
+        <li>
+            Speaking and dictation need Chrome, Edge or Safari. Firefox has no speech
+            recognition, but everything works by typing.
+        </li>
+    </ul>
+</section>

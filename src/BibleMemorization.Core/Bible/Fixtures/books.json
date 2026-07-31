@@ -1,0 +1,7 @@
+{
+  "books": [
+    { "id": "PSA", "name": "Psalms", "commonName": "Psalms", "order": 19, "numberOfChapters": 150 },
+    { "id": "JHN", "name": "John", "commonName": "John", "order": 43, "numberOfChapters": 21 },
+    { "id": "1CO", "name": "1 Corinthians", "commonName": "1 Corinthians", "order": 46, "numberOfChapters": 16 }
+  ]
+}
