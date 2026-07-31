@@ -74,8 +74,26 @@ jobs:
           # nothing serves them for index.html anyway.
           rm -f dist/wwwroot/index.html.br dist/wwwroot/index.html.gz
 
+      # The framework script is fingerprinted by the SDK, but stylesheets are not, so
+      # their URLs never change between deploys. A browser holding a cached copy then
+      # renders new markup against old styles — which is how read-along blanks lost
+      # their underline on a phone while looking correct everywhere else. GitHub Pages
+      # will not let us set cache headers, so the URL has to carry a content hash.
+      - name: Cache-bust stylesheets
+        run: |
+          set -euo pipefail
+          for css in "css/app.css" "BibleMemorization.App.styles.css"; do
+            [ -f "dist/wwwroot/$css" ] || { echo "Missing dist/wwwroot/$css"; exit 1; }
+            hash=$(md5sum "dist/wwwroot/$css" | cut -c1-10)
+            grep -q "$css\"" dist/wwwroot/index.html
+            sed -i "s|$css\"|$css?v=$hash\"|g" dist/wwwroot/index.html
+            grep -q "$css?v=$hash" dist/wwwroot/index.html
+          done
+          grep -o 'href="[^"]*\.css[^"]*"' dist/wwwroot/index.html
+
       # GitHub Pages serves 404.html for unknown paths. Serving the app shell from
       # there is what makes client-side routes survive a refresh or a deep link.
+      # Copied after the rewrites above so it carries them too.
       - name: Add SPA fallback and disable Jekyll
         run: |
           cp dist/wwwroot/index.html dist/wwwroot/404.html

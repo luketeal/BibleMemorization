@@ -62,7 +62,18 @@
                         else if (IsBeingAnswered(token.Index))
                         {
                             <span class="ra-fill ra-fill-live" data-testid="ra-live"
-                                  style="@BlankStyle(token)">@LiveText</span>
+                                  style="@BlankStyle(token)">
+                                @if (LiveText.Length == 0)
+                                {
+                                    @* A cursor, so an empty live blank still reads
+                                       as "your turn" rather than as a stray box. *@
+                                    <span class="ra-caret" aria-hidden="true"></span>
+                                }
+                                else
+                                {
+                                    @LiveText
+                                }
+                            </span>
                         }
                         else
                         {

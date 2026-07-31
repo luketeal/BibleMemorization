@@ -532,7 +532,7 @@ code {
     display: inline-block;
     height: 1.35em;
     vertical-align: baseline;
-    border-bottom: 2px solid #0d6efd;
+    border-bottom: 3px solid #0d6efd;
     background: #eef4ff;
     border-radius: 0.15rem 0.15rem 0 0;
 }
@@ -572,10 +572,45 @@ code {
     border-radius: 0.2rem;
 }
 
-.read-along-view .ra-awaiting .ra-blank {
-    background: #fff3cd;
-    border-bottom-color: #ffc107;
-    box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.25);
+/*
+   The blank being asked for right now. It has to be findable at a glance while the
+   user is listening rather than reading, so it is marked far more strongly than the
+   others: amber fill, heavier rule, a halo, and a slow pulse.
+*/
+.read-along-view .ra-awaiting .ra-blank,
+.read-along-view .ra-fill-live {
+    background: #ffe69c;
+    border-bottom: 3px solid #fd7e14;
+    box-shadow: 0 0 0 4px rgba(253, 126, 20, 0.3);
+    animation: ra-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes ra-pulse {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(253, 126, 20, 0.3); }
+    50% { box-shadow: 0 0 0 7px rgba(253, 126, 20, 0.12); }
+}
+
+/* A blinking cursor in the live blank, so an empty one still reads as "your turn". */
+.read-along-view .ra-caret {
+    display: inline-block;
+    width: 2px;
+    height: 1.1em;
+    vertical-align: text-bottom;
+    background: #fd7e14;
+    animation: ra-blink 1s step-end infinite;
+}
+
+@keyframes ra-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .read-along-view .ra-awaiting .ra-blank,
+    .read-along-view .ra-fill-live,
+    .read-along-view .ra-caret {
+        animation: none;
+    }
 }
 
 .read-along-log {
