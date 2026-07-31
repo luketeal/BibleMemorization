@@ -191,8 +191,43 @@
     --ra-phase-ink: var(--accent-ink);
 }
 
+/*
+   ---- Bootstrap bridge ----
+
+   Buttons, alerts, form controls and cards are Bootstrap's, so Bootstrap has to
+   follow the theme or half the interface stays the old colour. Mapping our tokens
+   onto its variables does that for every component at once, which is why there are
+   no per-component overrides below.
+
+   Bootstrap composes some colours itself, as rgba(var(--bs-primary-rgb), …) — the
+   focus ring is one. Anything bridged into a -rgb slot needs its channel triplet
+   supplying too, or those composed colours keep the old hue.
+
+   This block relies on app.css loading after bootstrap.min.css. Both declare at
+   :root, so equal specificity is broken by file order.
+*/
+:root {
+    --bs-body-bg: var(--surface-page);
+    --bs-body-color: var(--ink-primary);
+    --bs-secondary-color: var(--ink-muted);
+    --bs-emphasis-color: var(--ink-primary);
+    --bs-border-color: var(--border-subtle);
+    --bs-border-radius: var(--radius-md);
+    --bs-link-color: var(--accent-link);
+    --bs-link-hover-color: var(--accent-ink);
+    --bs-primary: var(--accent);
+    --bs-primary-rgb: var(--accent-rgb);
+    --bs-danger: var(--bad-rule);
+    --bs-success: var(--ok-rule);
+    --bs-warning: var(--c-warn);
+    --bs-focus-ring-color: var(--accent-ring);
+    --bs-body-font-family: var(--font-body);
+}
+
 html, body {
     font-family: var(--font-body);
+    background-color: var(--surface-page);
+    color: var(--ink-primary);
 }
 
 h1:focus {
@@ -203,14 +238,13 @@ a, .btn-link {
     color: var(--accent-link);
 }
 
-.btn-primary {
-    color: var(--ink-on-accent);
-    background-color: #1b6ec2;
-    border-color: #1861ac;
-}
-
+/*
+   A visible ring on everything focusable. The inner halo separates the ring from
+   the control beneath it, so it stays legible on a dark surface as well as a light
+   one.
+*/
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem var(--accent-ring);
+  box-shadow: 0 0 0 0.1rem var(--surface-page), 0 0 0 0.25rem var(--accent-ring);
 }
 
 .content {
@@ -229,9 +263,17 @@ a, .btn-link {
     color: red;
 }
 
+/*
+   Deliberately outside the theme: color-scheme pins this box to light, so its
+   colours are literals rather than tokens. They have to be stated rather than
+   inherited — under a dark theme the inherited text would be pale on pale yellow,
+   leaving the error message unreadable in the one situation where reading it
+   matters.
+*/
 #blazor-error-ui {
     color-scheme: light only;
     background: lightyellow;
+    color: #212529;
     bottom: 0;
     box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
     box-sizing: border-box;
@@ -248,6 +290,11 @@ a, .btn-link {
         position: absolute;
         right: 0.75rem;
         top: 0.5rem;
+    }
+
+    /* Literal, for the same reason as the banner itself. */
+    #blazor-error-ui a {
+        color: #0a58ca;
     }
 
 .blazor-error-boundary {
@@ -278,7 +325,7 @@ a, .btn-link {
     }
 
         .loading-progress circle:last-child {
-            stroke: #1b6ec2;
+            stroke: var(--accent);
             stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
             transition: stroke-dasharray 0.05s ease-in-out;
         }
@@ -471,6 +518,12 @@ code {
 
 .danger-zone h2 { color: var(--bad-ink-strong); }
 
+/*
+   The sidebar breakpoint. Media queries cannot read custom properties, so this value
+   is repeated rather than tokenized — it also appears once more below, and as 640.98px
+   / 641px in Layout/MainLayout.razor.css and Layout/NavMenu.razor.css. Change it in
+   all five places or not at all.
+*/
 @media (max-width: 640px) {
     .passage-card { flex-direction: column; }
     .passage-card-actions { flex-direction: row; }

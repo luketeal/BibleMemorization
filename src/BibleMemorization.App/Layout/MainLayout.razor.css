@@ -8,13 +8,23 @@ main {
     flex: 1;
 }
 
+/*
+   Scoped stylesheets can read the tokens declared in css/app.css but cannot declare
+   any of their own: Blazor's rewriter appends this file's scope attribute to the last
+   compound selector, so a :root block here would compile to :root[b-…] and match
+   nothing. Every colour below therefore comes from app.css.
+
+   --surface-nav-image lets a theme layer a gradient over the fill. Themes that want a
+   flat sidebar set it to none.
+*/
 .sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+    background-color: var(--surface-nav);
+    background-image: var(--surface-nav-image, none);
 }
 
 .top-row {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #d6d5d5;
+    background-color: var(--surface-topbar);
+    border-bottom: 1px solid var(--border-subtle);
     justify-content: flex-end;
     height: 3.5rem;
     display: flex;
