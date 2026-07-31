@@ -404,7 +404,20 @@ code {
     outline: 2px solid #ffda6a;
 }
 
-/* A blank keeps the width of the word it hides, so its length still cues recall. */
+/*
+   A blank keeps the width of the word it hides, so its length still cues recall.
+
+   The markup supplies only a character count, as `--pv-chars` in an inline style;
+   the em-per-character figure lives here, next to the reading face it describes.
+   Keeping it in CSS is what lets a theme change the face without desynchronizing
+   every blank from the word behind it.
+*/
+:root {
+    --pv-ch-width: 0.62em;
+    /* A typed answer needs more room per character than a static blank. */
+    --pv-ch-width-input: 0.72em;
+}
+
 /*
    One box for every inline slot — an empty blank, a one-letter hint, an input.
    Height and alignment are pinned here rather than left to the content, because
@@ -412,6 +425,10 @@ code {
    and the two end up different sizes with their underlines at different heights.
    The explicit line-height also gives an empty blank a real baseline, which an empty
    inline-block otherwise lacks.
+
+   Keep all four selectors on this one rule, and keep the height and line-height
+   equal. An E2E test asserts a blank and a hint are the same height with their
+   underlines level to within a pixel, and that only holds while both come from here.
 */
 .pv-slot,
 .pv-blank,
@@ -431,6 +448,7 @@ code {
 
 .pv-blank {
     cursor: default;
+    width: calc(var(--pv-chars) * var(--pv-ch-width));
 }
 
 .interactive .pv-blank { cursor: pointer; }
@@ -449,6 +467,8 @@ code {
     font-weight: 600;
     text-align: left;
     cursor: default;
+    /* min-width, not width, so a hint longer than expected is never clipped. */
+    min-width: calc(var(--pv-chars) * var(--pv-ch-width));
 }
 
 .interactive .pv-hint { cursor: pointer; }
@@ -473,6 +493,7 @@ code {
     font: inherit;
     background: #f8fbff;
     text-align: left;
+    width: calc(var(--pv-chars) * var(--pv-ch-width-input));
 }
 
 .pv-input:focus {
@@ -568,6 +589,7 @@ code {
     border-bottom: 3px solid #0d6efd;
     background: #eef4ff;
     border-radius: 0.15rem 0.15rem 0 0;
+    min-width: calc(var(--pv-chars) * var(--pv-ch-width));
 }
 
 .read-along-view .ra-fill {
@@ -585,6 +607,7 @@ code {
     color: #664d03;
     font-style: italic;
     min-height: 1.35em;
+    min-width: calc(var(--pv-chars) * var(--pv-ch-width));
 }
 
 .read-along-view .ra-fill-correct {

@@ -98,21 +98,24 @@
     /// Sizes a blank to the word it hides. The length cue is part of what makes
     /// vanishing text learnable, so a uniform blank would lose real information.
     /// A floor keeps one- and two-letter blanks comfortably clickable.
+    ///
+    /// This emits a character count, not a width. The em-per-character figure is a
+    /// property of the reading face, so it belongs with the face in CSS
+    /// (<c>--pv-ch-width</c>) rather than in three separate C# constants that a theme
+    /// change would silently desynchronize.
     /// </summary>
-    private static string BlankStyle(DisplayToken token)
-    {
-        var width = Math.Max(token.BlankWidth, 2);
-        return string.Create(CultureInfo.InvariantCulture, $"width: {width * 0.62m:0.##}em");
-    }
+    private static string BlankStyle(DisplayToken token) => CharsVar(token);
 
     /// <summary>
     /// Sizes an abbreviated word to the full word it stands for, so a one-letter hint
-    /// still shows how long the word is. min-width rather than width, so a hint longer
-    /// than expected is never clipped.
+    /// still shows how long the word is. The CSS uses min-width rather than width here,
+    /// so a hint longer than expected is never clipped.
     /// </summary>
-    private static string HintStyle(DisplayToken token)
+    private static string HintStyle(DisplayToken token) => CharsVar(token);
+
+    private static string CharsVar(DisplayToken token)
     {
-        var width = Math.Max(token.BlankWidth, 2);
-        return string.Create(CultureInfo.InvariantCulture, $"min-width: {width * 0.62m:0.##}em");
+        var chars = Math.Max(token.BlankWidth, 2);
+        return string.Create(CultureInfo.InvariantCulture, $"--pv-chars: {chars}");
     }
 }
