@@ -20,8 +20,11 @@
         <h2>By reference</h2>
         <div class="form-group">
             <label for="reference-box">Type a reference</label>
+            @* maxlength caps what the parser is ever asked to chew on. The longest real
+               reference is a couple of dozen characters, so 120 is generous. *@
             <input id="reference-box" class="form-control" @bind="_referenceText" @bind:event="oninput"
-                   @onkeydown="OnReferenceKeyDown" placeholder="John 3:16-18" data-testid="reference-box" />
+                   maxlength="120" @onkeydown="OnReferenceKeyDown" placeholder="John 3:16-18"
+                   data-testid="reference-box" />
             <p class="field-hint">
                 Works with "John 3:16", "John 3:16-18", "1 Cor 13" or "Psalm 23".
             </p>

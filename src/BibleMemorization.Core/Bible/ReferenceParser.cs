@@ -19,7 +19,11 @@ public static partial class ReferenceParser
     /// </summary>
     [GeneratedRegex(
         @"^\s*(?<book>(?:[1-3]|I{1,3})?\s*[\p{L}][\p{L}\s\.]*?)\s*(?<chapter>\d+)\s*(?::\s*(?<first>\d+)\s*(?:\s*[-–—]\s*(?<last>\d+))?)?\s*$",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+        // NonBacktracking because the two whitespace-matching parts below made this
+        // quadratic: a long pasted run of spaces took seconds before failing to match,
+        // and WASM on a phone is slower again. The pattern has no lookarounds, so the
+        // engine can take it.
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
     private static partial Regex ReferencePattern { get; }
 
     /// <summary>A leading 1-3 immediately followed by letters, as in "1cor".</summary>

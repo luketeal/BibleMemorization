@@ -1,4 +1,5 @@
 using System.Text;
+using BibleMemorization.Core.Model;
 using System.Text.Json;
 
 namespace BibleMemorization.Core.Storage;
@@ -62,7 +63,16 @@ public static class SnapshotSerializer
                 $"Unrecognised save file version {snapshot.SchemaVersion}.");
         }
 
-        return snapshot;
+        // Source-generated deserialization leaves absent properties null rather than
+        // at their initializers, so a legal-looking {"schemaVersion":1} yields null
+        // collections. Everything downstream assumes they are present, and the load
+        // runs before the app renders — so an unguarded null is a blank page.
+        return snapshot with
+        {
+            Passages = snapshot.Passages ?? [],
+            Progress = snapshot.Progress ?? [],
+            Settings = snapshot.Settings ?? AppSettings.Default,
+        };
     }
 
     public static LibrarySnapshot DeserializeBytes(byte[] bytes) =>

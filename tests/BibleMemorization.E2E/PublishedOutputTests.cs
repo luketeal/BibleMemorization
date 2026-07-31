@@ -1,6 +1,5 @@
 using BibleMemorization.E2E.Infrastructure;
 using Microsoft.Playwright;
-using Xunit.Abstractions;
 
 namespace BibleMemorization.E2E;
 
@@ -13,15 +12,16 @@ namespace BibleMemorization.E2E;
 /// serialization, which is where trimming bites.
 /// </summary>
 [Collection(AppCollection.Name)]
-public sealed class PublishedOutputTests(AppFixture fixture, ITestOutputHelper output) : IAsyncLifetime
+public sealed class PublishedOutputTests(AppFixture fixture) : IAsyncLifetime
 {
-    private readonly StaticSiteHost _site = new();
     private IBrowserContext _context = null!;
     private IPage _page = null!;
 
     public async Task InitializeAsync()
     {
-        await _site.StartAsync();
+        // The site is published and served once for the whole collection. xUnit news
+        // this class per test method, so doing it here republished five times.
+        await fixture.PublishedSite.Value;
 
         _context = await fixture.Browser.NewContextAsync(new BrowserNewContextOptions
         {
@@ -48,12 +48,11 @@ public sealed class PublishedOutputTests(AppFixture fixture, ITestOutputHelper o
         }
 
         await _context.DisposeAsync();
-        await _site.DisposeAsync();
     }
 
     private async Task GotoAsync(string path)
     {
-        await _page.GotoAsync($"{_site.BaseUrl}/{path.TrimStart('/')}");
+        await _page.GotoAsync($"{fixture.SiteBaseUrl}/{path.TrimStart('/')}");
         await _page.GetByTestId("app-ready").WaitForAsync(new LocatorWaitForOptions { Timeout = 90_000 });
     }
 
@@ -94,7 +93,7 @@ public sealed class PublishedOutputTests(AppFixture fixture, ITestOutputHelper o
         // Round-trip it back in, which exercises deserialization too.
         await _page.EvaluateAsync("async (j) => await window.__bmTest.seedLibrary(j)", json);
 
-        await _page.GotoAsync($"{_site.BaseUrl}/library?demo=1");
+        await _page.GotoAsync($"{fixture.SiteBaseUrl}/library?demo=1");
         await Assertions.Expect(_page.GetByTestId("passage-card")).ToHaveCountAsync(2);
     }
 

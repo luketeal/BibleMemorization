@@ -14,12 +14,18 @@ public enum ReadAlongPhase
 }
 
 /// <summary>What happened at one listen step.</summary>
+/// <param name="Error">
+/// Set when the recognizer itself failed, e.g. a denied microphone. Without it a
+/// blocked mic is indistinguishable from saying nothing, and the user is told to
+/// try again at a thing that cannot work.
+/// </param>
 public sealed record ListenOutcome(
     IReadOnlyList<int> TokenIndices,
     string Expected,
     string? Heard,
     bool Correct,
-    bool Revealed);
+    bool Revealed,
+    string? Error = null);
 
 /// <summary>
 /// Runs a guided read-along: the app reads the words still showing, pauses, and
@@ -38,6 +44,7 @@ public sealed class ReadAlongCoordinator : IAsyncDisposable
     private CancellationTokenSource? _run;
     private TaskCompletionSource<string?>? _listening;
     private string _heardSoFar = string.Empty;
+    private string? _lastError;
 
     public ReadAlongCoordinator(
         ISpeechSynthesizer synthesizer,
@@ -186,7 +193,7 @@ public sealed class ReadAlongCoordinator : IAsyncDisposable
                     Filled.Add(index);
                 }
 
-                Outcomes.Add(new ListenOutcome(step.TokenIndices, step.ExpectedText, heard, true, false));
+                Outcomes.Add(new ListenOutcome(step.TokenIndices, step.ExpectedText, heard, true, false, _lastError));
                 Changed?.Invoke();
                 return;
             }
@@ -198,7 +205,7 @@ public sealed class ReadAlongCoordinator : IAsyncDisposable
 
             // Out of attempts: say the words so the user hears the right answer
             // rather than being left stuck.
-            Outcomes.Add(new ListenOutcome(step.TokenIndices, step.ExpectedText, heard, false, true));
+            Outcomes.Add(new ListenOutcome(step.TokenIndices, step.ExpectedText, heard, false, true, _lastError));
             Changed?.Invoke();
 
             SetPhase(ReadAlongPhase.Speaking);
@@ -215,6 +222,7 @@ public sealed class ReadAlongCoordinator : IAsyncDisposable
     private async Task<string?> CaptureAsync(int timeoutMs, CancellationToken ct)
     {
         _heardSoFar = string.Empty;
+        _lastError = null;
 
         // Cleared per window, so the previous blank's answer never lingers in the next.
         LiveTranscript = null;
@@ -227,20 +235,28 @@ public sealed class ReadAlongCoordinator : IAsyncDisposable
 
         try
         {
-            var finished = await Task.WhenAny(_listening.Task, _delay(timeoutMs, timeout.Token));
+            var timer = _delay(timeoutMs, timeout.Token);
+            var finished = await Task.WhenAny(_listening.Task, timer);
 
             if (finished == _listening.Task)
             {
-                timeout.Cancel();
+                await timeout.CancelAsync();
+
+                // Observed so a cancelled timer never surfaces as an unobserved fault.
+                _ = timer.ContinueWith(static t => _ = t.Exception, TaskScheduler.Default);
+
                 return await _listening.Task;
             }
 
-            // Silence. Whatever partial text arrived is still worth scoring.
-            return string.IsNullOrWhiteSpace(_heardSoFar) ? null : _heardSoFar;
+            // Whatever arrived is still worth scoring, including text the recognizer
+            // never finalised. Chrome with continuous = true routinely leaves the tail
+            // utterance interim, and discarding it marks a correct answer wrong right
+            // after showing the user their own words.
+            return BestHeard();
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
-            return string.IsNullOrWhiteSpace(_heardSoFar) ? null : _heardSoFar;
+            return BestHeard();
         }
         finally
         {
@@ -317,10 +333,28 @@ public sealed class ReadAlongCoordinator : IAsyncDisposable
 
     private void OnRecognizerEnded(string? error)
     {
-        if (Phase == ReadAlongPhase.Listening)
+        if (Phase != ReadAlongPhase.Listening)
         {
-            _listening?.TrySetResult(string.IsNullOrWhiteSpace(_heardSoFar) ? null : _heardSoFar);
+            return;
         }
+
+        _lastError = error;
+        _listening?.TrySetResult(BestHeard());
+    }
+
+    /// <summary>
+    /// The best text available for scoring: committed words if there are any,
+    /// otherwise whatever the recognizer was still revising. The interim text is what
+    /// the user has been watching, so it is the answer they believe they gave.
+    /// </summary>
+    private string? BestHeard()
+    {
+        if (!string.IsNullOrWhiteSpace(_heardSoFar))
+        {
+            return _heardSoFar;
+        }
+
+        return string.IsNullOrWhiteSpace(LiveTranscript) ? null : LiveTranscript;
     }
 
     public async Task StopAsync()

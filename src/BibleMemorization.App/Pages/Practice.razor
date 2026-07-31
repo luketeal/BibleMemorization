@@ -45,9 +45,9 @@ else
 
     <div class="mode-tabs">
         <button type="button" class="@TabClass(PracticeMode.Study)"
-                @onclick="() => SetModeAsync(PracticeMode.Study)" data-testid="mode-study">Study</button>
+                @onclick="() => SetMode(PracticeMode.Study)" data-testid="mode-study">Study</button>
         <button type="button" class="@TabClass(PracticeMode.Test)"
-                @onclick="() => SetModeAsync(PracticeMode.Test)" data-testid="mode-test">Test me</button>
+                @onclick="() => SetMode(PracticeMode.Test)" data-testid="mode-test">Test me</button>
     </div>
 
     @if (_mode == PracticeMode.Study)
@@ -130,6 +130,7 @@ else
                                    @oninput="e => SetAnswer(token.TokenIndex, e.Value?.ToString())"
                                    @onchange="() => CheckOne(token.TokenIndex)"
                                    @onkeydown="e => OnBlankKeyDown(e, token.TokenIndex)"
+                                   aria-label="@BlankLabel(token)"
                                    data-testid="blank-input" data-token-index="@token.TokenIndex" />
                             <span class="pv-punct">@token.Suffix</span>
                         </span>
@@ -174,9 +175,16 @@ else
                 &mdash; @_result.CorrectCount of @_result.ExpectedCount words
             </h2>
 
-            @if (_result.IsPerfect)
+            @if (_result.IsPerfect && _result.ExpectedCount > 0)
             {
                 <p class="results-perfect" data-testid="results-perfect">Word perfect.</p>
+            }
+            else if (_result.ExpectedCount == 0)
+            {
+                @* 100% of nothing is not an achievement; say what actually happened. *@
+                <p class="field-hint" data-testid="results-nothing-tested">
+                    There were no words to recall here.
+                </p>
             }
 
             @if (_result.ExtraWords.Count > 0)
@@ -317,7 +325,6 @@ else
             _input = TestInput.Blanks;
         }
 
-
         // Progress is stored per technique, so switching restores whatever was
         // hidden under this one rather than carrying the other's state across.
         LoadProgress();
@@ -326,7 +333,7 @@ else
         await Store.SaveSettingsAsync(Store.Settings with { DefaultTechniqueId = technique.Id });
     }
 
-    private async Task SetModeAsync(PracticeMode mode)
+    private void SetMode(PracticeMode mode)
     {
         _mode = mode;
         ClearResult();
@@ -343,8 +350,6 @@ else
                 _input = TestInput.Blanks;
             }
         }
-
-        await Task.CompletedTask;
     }
 
     private void SetInput(TestInput input)
@@ -375,10 +380,11 @@ else
     private Task RevealAllAsync() => ApplyHiddenAsync(WordHider.RevealAll());
 
     /// <summary>
-    /// Varies the seed per click so repeated presses hide different words, while
-    /// each individual call stays reproducible.
+    /// Varies per click so repeated presses hide different words, while staying the
+    /// same across page loads.
     /// </summary>
-    private int NextSeed() => HashCode.Combine(PassageId, _state.HiddenTokenIndices.Count, _technique.Id);
+    private int NextSeed() =>
+        TechniqueSeed.For(PassageId, _technique.Id, _state.HiddenTokenIndices.Count);
 
     private async Task ApplyHiddenAsync(IReadOnlyList<int> hidden)
     {
@@ -419,6 +425,19 @@ else
             _answers[token.TokenIndex] = token.Text;
             _prefilled[token.TokenIndex] = token.Text;
         }
+    }
+
+    /// <summary>
+    /// Names the field for a screen reader. A row of unlabelled inputs is otherwise
+    /// just "edit text" repeated, with no way to tell which gap you are in.
+    /// </summary>
+    private string BlankLabel(DisplayToken token)
+    {
+        var tested = TestedIndices;
+        var position = tested.ToList().IndexOf(token.TokenIndex) + 1;
+        var of = $"Missing word {position} of {tested.Count}";
+
+        return token.Text.Length > 0 ? $"{of}, starts with {token.Text}" : of;
     }
 
     private string GetAnswer(int tokenIndex) => _answers.GetValueOrDefault(tokenIndex, string.Empty);

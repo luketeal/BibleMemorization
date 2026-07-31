@@ -176,11 +176,57 @@ public static class RecallScorer
     }
 
     /// <summary>
+    /// Above this many cells the full table stops being a reasonable thing to hand a
+    /// single-threaded WASM heap: 250,000 ints is about 1 MB, and the table grows with
+    /// the product of both lengths, so a chapter-length passage recited in full would
+    /// ask for tens of megabytes.
+    /// </summary>
+    private const int FullTableCellLimit = 250_000;
+
+    /// <summary>
     /// Levenshtein alignment over word sequences, returning the edit script rather
     /// than just the distance. Substitution is what distinguishes "said the wrong
     /// word here" from "skipped a word", which the UI colours differently.
+    ///
+    /// The backtrace needs the table, so the cost rows cannot simply roll. Instead,
+    /// long inputs switch to a diagonal band. Any optimal path strays from the
+    /// diagonal by at most the edit distance, so a band at least that wide contains
+    /// the very path the full table would have walked — same script, a fraction of
+    /// the memory. The band starts narrow and doubles until it demonstrably did not
+    /// bind, which is what keeps the result exact rather than approximate.
     /// </summary>
     private static List<Op> Align(string[] expected, string[] actual)
+    {
+        var n = expected.Length;
+        var m = actual.Length;
+
+        if ((long)(n + 1) * (m + 1) <= FullTableCellLimit)
+        {
+            return AlignFull(expected, actual);
+        }
+
+        // Below |n - m| no path reaches the far corner at all, so that is the floor.
+        var band = Math.Max(32, Math.Abs(n - m));
+        var maxBand = Math.Max(n, m);
+
+        while (true)
+        {
+            band = Math.Min(band, maxBand);
+            var (ops, distance) = AlignBanded(expected, actual, band);
+
+            // A distance within the band proves the band held every cheaper path, so
+            // this is the true optimum. At maxBand the band is the whole table, and
+            // the distance can never exceed max(n, m) — hence this always terminates.
+            if (distance <= band)
+            {
+                return ops;
+            }
+
+            band *= 2;
+        }
+    }
+
+    private static List<Op> AlignFull(string[] expected, string[] actual)
     {
         var n = expected.Length;
         var m = actual.Length;
@@ -239,5 +285,118 @@ public static class RecallScorer
 
         ops.Reverse();
         return ops;
+    }
+
+    /// <summary>
+    /// The same recurrence and the same backtrace preferences as <see cref="AlignFull"/>,
+    /// but only cells within <paramref name="band"/> of the diagonal are stored.
+    /// Returns the distance alongside the script so the caller can tell whether the
+    /// band bound — if it did, the script is not trustworthy and is not returned.
+    /// </summary>
+    private static (List<Op> Ops, int Distance) AlignBanded(string[] expected, string[] actual, int band)
+    {
+        // Half of int.MaxValue, so "unreachable + 1" cannot wrap into a small number
+        // and look like a cheap path.
+        const int unreachable = int.MaxValue / 2;
+
+        var n = expected.Length;
+        var m = actual.Length;
+
+        var lo = new int[n + 1];
+        var rows = new int[n + 1][];
+
+        for (var i = 0; i <= n; i++)
+        {
+            lo[i] = Math.Max(0, i - band);
+            var rowEnd = Math.Min(m, i + band);
+            rows[i] = new int[rowEnd - lo[i] + 1];
+            Array.Fill(rows[i], unreachable);
+        }
+
+        int Cost(int i, int j)
+        {
+            if (i < 0 || j < 0 || i > n || j > m)
+            {
+                return unreachable;
+            }
+
+            var offset = j - lo[i];
+            return offset < 0 || offset >= rows[i].Length ? unreachable : rows[i][offset];
+        }
+
+        void SetCost(int i, int j, int value)
+        {
+            var offset = j - lo[i];
+            if (offset >= 0 && offset < rows[i].Length)
+            {
+                rows[i][offset] = value;
+            }
+        }
+
+        SetCost(0, 0, 0);
+
+        for (var j = 1; j <= Math.Min(m, band); j++)
+        {
+            SetCost(0, j, j);
+        }
+
+        for (var i = 1; i <= n; i++)
+        {
+            if (i <= band)
+            {
+                SetCost(i, 0, i);
+            }
+
+            var rowEnd = Math.Min(m, i + band);
+
+            for (var j = Math.Max(1, lo[i]); j <= rowEnd; j++)
+            {
+                var substitution = Cost(i - 1, j - 1) + (expected[i - 1] == actual[j - 1] ? 0 : 1);
+                var deletion = Cost(i - 1, j) + 1;
+                var insertion = Cost(i, j - 1) + 1;
+                SetCost(i, j, Math.Min(substitution, Math.Min(deletion, insertion)));
+            }
+        }
+
+        var distance = Cost(n, m);
+
+        if (distance > band)
+        {
+            // The band bound. Backtracing through clipped cells would wander, so the
+            // caller widens and asks again rather than being handed a wrong script.
+            return ([], distance);
+        }
+
+        var ops = new List<Op>(n + m);
+        var x = n;
+        var y = m;
+
+        while (x > 0 || y > 0)
+        {
+            if (x > 0 && y > 0)
+            {
+                var isMatch = expected[x - 1] == actual[y - 1];
+                if (Cost(x, y) == Cost(x - 1, y - 1) + (isMatch ? 0 : 1))
+                {
+                    ops.Add(isMatch ? Op.Match : Op.Substitute);
+                    x--;
+                    y--;
+                    continue;
+                }
+            }
+
+            if (x > 0 && Cost(x, y) == Cost(x - 1, y) + 1)
+            {
+                ops.Add(Op.Missing);
+                x--;
+                continue;
+            }
+
+            ops.Add(Op.Extra);
+            y--;
+        }
+
+        ops.Reverse();
+        return (ops, distance);
     }
 }

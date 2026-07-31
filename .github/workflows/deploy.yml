@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - claude/bible-memory-app-plan-h15q8r
   workflow_dispatch:
 
 permissions:
@@ -40,6 +39,12 @@ jobs:
 
       - name: Unit tests
         run: dotnet test tests/BibleMemorization.Core.Tests --no-build -c Release --verbosity normal
+
+      # speech.js is the one file no C# test can reach: every suite runs against the
+      # fake recognizer, because headless browsers have no microphone. Node drives the
+      # real module against a stand-in Web Speech API instead.
+      - name: Speech wrapper tests
+        run: node --test tests/speech-js/speech.test.mjs
 
       # Locally the container already has a matching Chromium and the fixture
       # points straight at it; CI has no such browser, so install one here.
@@ -82,7 +87,7 @@ jobs:
       - name: Cache-bust stylesheets
         run: |
           set -euo pipefail
-          for css in "css/app.css" "BibleMemorization.App.styles.css"; do
+          for css in "css/app.css" "BibleMemorization.App.styles.css" "lib/bootstrap/dist/css/bootstrap.min.css"; do
             [ -f "dist/wwwroot/$css" ] || { echo "Missing dist/wwwroot/$css"; exit 1; }
             hash=$(md5sum "dist/wwwroot/$css" | cut -c1-10)
             grep -q "$css\"" dist/wwwroot/index.html

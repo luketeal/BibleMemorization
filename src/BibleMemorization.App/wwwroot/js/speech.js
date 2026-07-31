@@ -84,6 +84,11 @@ export function stopRecognition() {
     recognition.onerror = null;
     recognition.onend = null;
     recognition = null;
+
+    // onend was detached above, so it will never run to clear this itself. A natural
+    // end does not null `recognition`, so the next start() would tear that instance
+    // down and re-arm the flag — suppressing every later session's end.
+    stopping = false;
 }
 
 // Resolves when the utterance has actually finished, which is what lets read-along

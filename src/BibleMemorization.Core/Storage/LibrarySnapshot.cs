@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using BibleMemorization.Core.Model;
 
 namespace BibleMemorization.Core.Storage;
@@ -28,5 +29,6 @@ public sealed record LibrarySnapshot
 
     public static LibrarySnapshot Empty { get; } = new();
 
+    [JsonIgnore]
     public bool IsEmpty => Passages.Count == 0 && Progress.Count == 0;
 }

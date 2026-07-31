@@ -69,9 +69,10 @@ public static class Tokenizer
 
         var word = chunk[start..end];
 
-        // A chunk with no word characters is standalone punctuation, such as an em
-        // dash. A chunk that is all digits is a verse number. Neither is recallable.
-        var isWord = word.Length > 0 && !word.All(char.IsDigit);
+        // Recallable means it contains a letter. Verse numbers, "3:16", "1-2" and
+        // "1,000" all survive edge-stripping as non-empty words, so testing for
+        // all-digits alone let cross-references become blanks to memorize.
+        var isWord = word.Any(char.IsLetter);
 
         return new Token(index, leading, chunk[..start], word, chunk[end..], isWord);
     }

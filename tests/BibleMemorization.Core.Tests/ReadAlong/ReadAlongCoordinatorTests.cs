@@ -331,6 +331,132 @@ public class ReadAlongCoordinatorTests
         }
     }
 
+    /// <summary>
+    /// Chrome with continuous = true routinely never finalises the tail utterance, so
+    /// scoring only finalised text threw away the answer the user had just watched
+    /// appear — marked wrong, then read the word they had said correctly.
+    /// </summary>
+    [Fact]
+    public async Task An_answer_the_recognizer_never_finalised_is_still_scored()
+    {
+        var coordinator = new ReadAlongCoordinator(_synth, _mic, async (ms, ct) =>
+        {
+            if (ms >= 50)
+            {
+                // Interim only: no final ever arrives, so the listen window times out.
+                _mic.Emit("God", isFinal: false);
+            }
+
+            await Task.Yield();
+        });
+
+        await using (coordinator)
+        {
+            await coordinator.RunAsync(Passage(), [1], Settings);
+
+            var outcome = Assert.Single(coordinator.Outcomes);
+            Assert.True(outcome.Correct);
+            Assert.Equal("God", outcome.Heard);
+            Assert.Contains(1, coordinator.Filled);
+        }
+    }
+
+    [Fact]
+    public async Task Finalised_words_are_preferred_over_the_interim_guess()
+    {
+        var coordinator = new ReadAlongCoordinator(_synth, _mic, async (ms, ct) =>
+        {
+            if (ms >= 50)
+            {
+                _mic.Emit("God", isFinal: true);
+                // A later interim revision must not displace what was already committed.
+                _mic.Emit("dog", isFinal: false);
+            }
+
+            await Task.Yield();
+        });
+
+        await using (coordinator)
+        {
+            await coordinator.RunAsync(Passage(), [1], Settings);
+
+            Assert.Equal("God", Assert.Single(coordinator.Outcomes).Heard);
+        }
+    }
+
+    /// <summary>
+    /// A blocked microphone and a user saying nothing look identical from the
+    /// coordinator's side unless the recognizer's reason is carried through — and
+    /// telling someone to "try again" at a thing that cannot work is worse than useless.
+    /// </summary>
+    [Fact]
+    public async Task A_denied_microphone_is_distinguishable_from_silence()
+    {
+        var coordinator = new ReadAlongCoordinator(_synth, _mic, async (ms, ct) =>
+        {
+            if (ms >= 50)
+            {
+                _mic.EndSession("not-allowed");
+            }
+
+            await Task.Yield();
+        });
+
+        await using (coordinator)
+        {
+            await coordinator.RunAsync(Passage(), [1], Settings);
+
+            var outcome = Assert.Single(coordinator.Outcomes);
+            Assert.Equal("not-allowed", outcome.Error);
+            Assert.Null(outcome.Heard);
+        }
+    }
+
+    [Fact]
+    public async Task Plain_silence_carries_no_error()
+    {
+        await using var coordinator = Coordinator(replies: [null]);
+
+        await coordinator.RunAsync(Passage(), [1], Settings);
+
+        var outcome = Assert.Single(coordinator.Outcomes);
+        Assert.Null(outcome.Error);
+        Assert.Null(outcome.Heard);
+    }
+
+    [Fact]
+    public async Task An_error_on_one_blank_does_not_stick_to_the_next()
+    {
+        var windows = 0;
+
+        var coordinator = new ReadAlongCoordinator(_synth, _mic, async (ms, ct) =>
+        {
+            if (ms >= 50)
+            {
+                windows++;
+
+                if (windows == 1)
+                {
+                    _mic.EndSession("network");
+                }
+                else
+                {
+                    _mic.Emit("world");
+                }
+            }
+
+            await Task.Yield();
+        });
+
+        await using (coordinator)
+        {
+            await coordinator.RunAsync(Passage(), [1, 5], Settings);
+
+            Assert.Equal("network", coordinator.Outcomes[0].Error);
+            Assert.Null(coordinator.Outcomes[1].Error);
+        }
+    }
+
     [Fact]
     public async Task The_live_transcript_is_cleared_once_the_window_closes()
     {

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace BibleMemorization.Core.Model;
 
 /// <summary>How the user supplied their answer.</summary>
@@ -37,7 +39,16 @@ public sealed record PracticeProgress
 
     public IReadOnlyList<Attempt> Attempts { get; init; } = [];
 
+    /// <summary>
+    /// When this progress last changed. Absent in files written before this existed,
+    /// which defaults to MinValue — so an old backup can never overwrite newer work.
+    /// </summary>
+    public DateTimeOffset UpdatedUtc { get; init; }
+
     public static string KeyFor(Guid passageId, string techniqueId) => $"{passageId:N}:{techniqueId}";
 
+    // Derived, so writing it into the save file would just be noise in a file the
+    // README invites people to open.
+    [JsonIgnore]
     public string Key => KeyFor(PassageId, TechniqueId);
 }

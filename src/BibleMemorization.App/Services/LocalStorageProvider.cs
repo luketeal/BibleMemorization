@@ -37,10 +37,13 @@ public sealed class LocalStorageProvider(IJSRuntime jsRuntime) : IStorageProvide
         {
             return SnapshotSerializer.Deserialize(json);
         }
-        catch (SaveFileFormatException ex)
+        catch (Exception ex)
         {
-            // Corrupt local data must not lock the user out of the app entirely.
-            // Start empty and say so, leaving the bad value in place for recovery.
+            // Deliberately every exception, not just SaveFileFormatException. This
+            // runs before the first render, so anything that escapes here is a blank
+            // page with no way back — which is exactly what the promise below rules
+            // out. Corrupt local data must not lock the user out of the app entirely,
+            // so start empty and say so, leaving the bad value in place for recovery.
             LastError = $"Saved data in this browser could not be read ({ex.Message}). Starting empty.";
             return LibrarySnapshot.Empty;
         }

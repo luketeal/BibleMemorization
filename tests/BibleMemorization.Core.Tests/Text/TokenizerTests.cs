@@ -54,6 +54,34 @@ public class TokenizerTests
         Assert.Equal(["For", "God", "so", "loved"], passage.Where(t => t.IsWord).Select(t => t.Word));
     }
 
+    /// <summary>
+    /// Testing for all-digits alone was not enough. A cross-reference survives
+    /// edge-stripping as a single non-empty chunk containing a colon, so "3:16" and
+    /// "1,000" read as recallable words — and a user hiding words at random would be
+    /// asked to memorize a chapter-and-verse citation.
+    /// </summary>
+    [Theory]
+    [InlineData("See 3:16 also", "3:16")]
+    [InlineData("about 1,000 men", "1,000")]
+    [InlineData("verses 1-2 there", "1-2")]
+    [InlineData("chapter 12.5 here", "12.5")]
+    public void Numbers_woven_into_the_text_are_not_words_to_memorize(string text, string expected)
+    {
+        var passage = Tokenizer.Tokenize(text);
+
+        var token = Assert.Single(passage, t => t.Word == expected);
+        Assert.False(token.IsWord);
+    }
+
+    [Fact]
+    public void A_number_attached_to_letters_is_still_a_word()
+    {
+        // "2nd" is read aloud and recalled like any other word.
+        var passage = Tokenizer.Tokenize("the 2nd time");
+
+        Assert.Equal(["the", "2nd", "time"], passage.Where(t => t.IsWord).Select(t => t.Word));
+    }
+
     [Fact]
     public void Standalone_punctuation_is_not_a_word()
     {

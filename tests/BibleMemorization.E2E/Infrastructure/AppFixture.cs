@@ -11,6 +11,15 @@ public sealed class AppFixture : IAsyncLifetime
 {
     private IPlaywright? _playwright;
     private AppHost? _appHost;
+    private readonly StaticSiteHost _site = new();
+
+    /// <summary>
+    /// The Release-published site, started once on first use. Publishing is slow, and
+    /// only the published-output tests need it, so it stays lazy.
+    /// </summary>
+    public Lazy<Task> PublishedSite => field ??= new Lazy<Task>(() => _site.StartAsync());
+
+    public string SiteBaseUrl => _site.BaseUrl;
 
     public IBrowser Browser { get; private set; } = null!;
 
@@ -62,6 +71,8 @@ public sealed class AppFixture : IAsyncLifetime
         {
             await _appHost.DisposeAsync();
         }
+
+        await _site.DisposeAsync();
     }
 }
 

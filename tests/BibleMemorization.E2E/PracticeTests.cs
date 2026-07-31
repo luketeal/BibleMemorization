@@ -293,6 +293,55 @@ public sealed class PracticeTests(AppFixture fixture, ITestOutputHelper output)
         await Assertions.Expect(page.GetByTestId("results-accuracy")).ToHaveTextAsync("100%");
     }
 
+    /// <summary>
+    /// A row of unlabelled inputs reads as "edit text" over and over, with nothing to
+    /// say which gap you are in — which makes the whole technique unusable by voice or
+    /// screen reader, the very users most likely to want the spoken modes.
+    /// </summary>
+    [Fact]
+    public async Task Every_blank_field_has_an_accessible_name()
+    {
+        await OpenPracticeAsync();
+
+        await Page.Locator("[data-testid=word]", new() { HasTextString = "God" }).First.ClickAsync();
+        await Page.Locator("[data-testid=word]", new() { HasTextString = "world" }).First.ClickAsync();
+        await Page.GetByTestId("mode-test").ClickAsync();
+
+        await Assertions.Expect(Page.GetByTestId("blank-input")).ToHaveCountAsync(2);
+        await Assertions.Expect(Page.GetByTestId("blank-input").First)
+            .ToHaveAttributeAsync("aria-label", "Missing word 1 of 2");
+        await Assertions.Expect(Page.GetByTestId("blank-input").Nth(1))
+            .ToHaveAttributeAsync("aria-label", "Missing word 2 of 2");
+    }
+
+    [Fact]
+    public async Task A_seeded_field_says_what_it_starts_with()
+    {
+        await GotoAsync("library?demo=1");
+        await Page.GetByTestId("practice-link").First.ClickAsync();
+        await Page.GetByTestId("technique-first-letter").ClickAsync();
+        await Page.GetByTestId("mode-test").ClickAsync();
+
+        await Assertions.Expect(Page.GetByTestId("blank-input").First)
+            .ToHaveAttributeAsync("aria-label", "Missing word 1 of 25, starts with F");
+    }
+
+    /// <summary>
+    /// The reference parser runs on every keystroke, so the box is also the app's
+    /// widest-open door onto it. The cap is what keeps a paste of nonsense from being
+    /// a performance question at all.
+    /// </summary>
+    [Fact]
+    public async Task The_reference_box_will_not_take_an_essay()
+    {
+        await GotoAsync("import?demo=1");
+
+        await Page.GetByTestId("reference-box").FillAsync(new string('a', 5_000));
+
+        var value = await Page.GetByTestId("reference-box").InputValueAsync();
+        Assert.Equal(120, value.Length);
+    }
+
     // ---- First letter as a technique you can practise, not just look at ----
 
     [Fact]

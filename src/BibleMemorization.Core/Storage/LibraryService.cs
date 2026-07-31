@@ -11,6 +11,9 @@ namespace BibleMemorization.Core.Storage;
 /// </summary>
 public sealed class LibraryService(StorageProviderRegistry providers, IClock clock)
 {
+    /// <summary>Enough for a meaningful history; the UI shows the last five.</summary>
+    private const int MaxStoredAttempts = 50;
+
     private readonly List<Passage> _passages = [];
     private readonly Dictionary<string, PracticeProgress> _progress = [];
 
@@ -116,6 +119,13 @@ public sealed class LibraryService(StorageProviderRegistry providers, IClock clo
 
     public async Task SaveProgressAsync(PracticeProgress progress, CancellationToken ct = default)
     {
+        // Stamped here rather than by callers, so every write is comparable on import.
+        progress = progress with
+        {
+            UpdatedUtc = clock.UtcNow,
+            Attempts = Trim(progress.Attempts),
+        };
+
         _progress[progress.Key] = progress;
 
         if (providers.Active is IIncrementalStorageProvider incremental)
@@ -215,9 +225,16 @@ public sealed class LibraryService(StorageProviderRegistry providers, IClock clo
             }
         }
 
+        // Guarded the same way passages are. Without this an older backup keeps the
+        // newer passage but silently wipes the hidden words and attempt history that
+        // belong to it — the exact rollback this method claims to prevent.
         foreach (var incoming in snapshot.Progress)
         {
-            _progress[incoming.Key] = incoming;
+            if (!_progress.TryGetValue(incoming.Key, out var existing)
+                || incoming.UpdatedUtc > existing.UpdatedUtc)
+            {
+                _progress[incoming.Key] = incoming;
+            }
         }
 
         await SaveSnapshotAsync(ct);
@@ -237,6 +254,16 @@ public sealed class LibraryService(StorageProviderRegistry providers, IClock clo
             await SaveSnapshotAsync(ct);
         }
     }
+
+    /// <summary>
+    /// Caps stored attempts. They were appended forever while only the last few are
+    /// ever shown, so a long-practised passage grew towards the localStorage quota
+    /// for history nobody reads.
+    /// </summary>
+    private static IReadOnlyList<Attempt> Trim(IReadOnlyList<Attempt> attempts) =>
+        attempts.Count <= MaxStoredAttempts
+            ? attempts
+            : [.. attempts.Skip(attempts.Count - MaxStoredAttempts)];
 
     private Task SaveSnapshotAsync(CancellationToken ct) => providers.Active.SaveAsync(ToSnapshot(), ct);
 

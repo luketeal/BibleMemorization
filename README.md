@@ -78,9 +78,15 @@ counts as.
 ## Tests
 
 ```bash
-dotnet test tests/BibleMemorization.Core.Tests   # 225 unit tests, fast
-dotnet test tests/BibleMemorization.E2E          # 53 browser tests via Playwright
+dotnet test tests/BibleMemorization.Core.Tests   # 303 unit tests, fast
+dotnet test tests/BibleMemorization.E2E          # 80 browser tests via Playwright
+node --test tests/speech-js/speech.test.mjs      # 12 tests for the Web Speech wrapper
 ```
+
+The Node tests exist because `wwwroot/js/speech.js` is the one file the other two
+suites cannot reach: both run against `FakeSpeechRecognizer`, since a headless
+browser has no microphone. So the real module is driven in Node against a stand-in
+Web Speech API, which is what covers its cross-session state.
 
 The end-to-end tests drive real Chromium headlessly against `?demo=1`, so they need
 no network and no microphone. Screenshots land in `artifacts/screenshots/`, and
@@ -98,6 +104,7 @@ src/BibleMemorization.Core/     domain logic, no browser dependencies
 src/BibleMemorization.App/      Blazor WebAssembly UI and browser interop
 tests/BibleMemorization.Core.Tests/
 tests/BibleMemorization.E2E/
+tests/speech-js/                the Web Speech wrapper, driven in Node
 ```
 
 Everything worth testing lives in `Core` and is testable without a browser: the
