@@ -17,52 +17,52 @@
 :root {
     /* Tier 1 — palette primitives */
     --c-white: #fff;
-    --c-ink-1: #212529;
-    --c-ink-2: #343a40;
-    --c-ink-3: #495057;
-    --c-ink-4: #6c757d;
-    --c-surface-1: #fff;
-    --c-surface-2: #fbfbfb;
-    --c-surface-3: #f7f7f7;
-    --c-line-1: #dee2e6;
-    --c-line-2: #ced4da;
-    --c-track: #e0e0e0;
+    --c-ink-1: #16191f;
+    --c-ink-2: #2b303a;
+    --c-ink-3: #4a5160;
+    --c-ink-4: #767e8d;
+    --c-surface-1: #ffffff;
+    --c-surface-2: #f7f8fa;
+    --c-surface-3: #eef0f4;
+    --c-line-1: #e3e6eb;
+    --c-line-2: #ccd1da;
+    --c-track: #e3e6eb;
 
-    --c-accent: #0d6efd;
-    --c-accent-deep: #0a58ca;
-    --c-accent-link: #0071c1;
-    --c-accent-focus: #258cfb;
-    --c-accent-wash: #f8fbff;
-    --c-accent-tint: #e7f1ff;
-    --c-accent-soft: #eef4ff;
-    --c-accent-soft-2: #cfe2ff;
-    --c-accent-line: #b6d4fe;
-    --c-accent-line-2: #9ec5fe;
+    --c-accent: #3b5bdb;
+    --c-accent-deep: #2f49af;
+    --c-accent-link: #2f49af;
+    --c-accent-focus: #748ffc;
+    --c-accent-wash: #fafbff;
+    --c-accent-tint: #edf0fe;
+    --c-accent-soft: #eef1fd;
+    --c-accent-soft-2: #dbe2fb;
+    --c-accent-line: #bac6f7;
+    --c-accent-line-2: #a3b3f4;
 
-    --c-ok: #198754;
-    --c-ok-deep: #146c43;
-    --c-ok-fill: #d1e7dd;
-    --c-ok-ink: #0f5132;
-    --c-ok-outline: #26b050;
+    --c-ok: #2f9e68;
+    --c-ok-deep: #1e7a4d;
+    --c-ok-fill: #ddf3e7;
+    --c-ok-ink: #14563a;
+    --c-ok-outline: #2f9e68;
 
-    --c-bad: #dc3545;
-    --c-bad-deep: #b02a37;
-    --c-bad-fill: #f8d7da;
-    --c-bad-ink: #842029;
-    --c-bad-solid: #b32121;
+    --c-bad: #d64550;
+    --c-bad-deep: #a92f39;
+    --c-bad-fill: #fbe4e6;
+    --c-bad-ink: #7d222a;
+    --c-bad-solid: #a92f39;
 
-    --c-warn: #ffc107;
-    --c-warn-fill: #fff3cd;
-    --c-warn-line: #ffe69c;
-    --c-warn-outline: #ffda6a;
-    --c-warn-ink: #664d03;
+    --c-warn: #d9a441;
+    --c-warn-fill: #fdf3dd;
+    --c-warn-line: #f2dfb0;
+    --c-warn-outline: #e6c576;
+    --c-warn-ink: #6b5312;
 
-    --c-live: #fd7e14;
-    --c-live-rgb: 253, 126, 20;
-    --c-code: #c02d76;
+    --c-live: #e07b39;
+    --c-live-rgb: 224, 123, 57;
+    --c-code: #c0397a;
 
     /* Tier 2 — surfaces */
-    --surface-page: var(--c-surface-1);
+    --surface-page: #f7f8fa;
     --surface-raised: var(--c-surface-1);
     --surface-sunken: var(--c-surface-2);
     --surface-wash: var(--c-accent-wash);
@@ -70,12 +70,12 @@
     --surface-topbar: var(--c-surface-3);
     /* The sidebar. --surface-nav-image lets a theme layer a gradient over the fill;
        themes that want a flat sidebar leave it as none. */
-    --surface-nav: rgb(5, 39, 103);
-    --surface-nav-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
-    --surface-nav-header: rgba(0, 0, 0, 0.4);
-    --surface-nav-active: rgba(255, 255, 255, 0.37);
-    --surface-nav-hover: rgba(255, 255, 255, 0.1);
-    --surface-nav-control: rgba(255, 255, 255, 0.1);
+    --surface-nav: #eef0f4;
+    --surface-nav-image: none;
+    --surface-nav-header: rgba(22, 25, 31, 0.05);
+    --surface-nav-active: #dbe2fb;
+    --surface-nav-hover: rgba(22, 25, 31, 0.05);
+    --surface-nav-control: rgba(22, 25, 31, 0.08);
 
     /* Tier 2 — ink */
     --ink-primary: var(--c-ink-1);
@@ -83,13 +83,13 @@
     --ink-secondary: var(--c-ink-3);
     --ink-muted: var(--c-ink-4);
     --ink-on-accent: var(--c-white);
-    --ink-on-nav: #d7d7d7;
-    --ink-on-nav-active: #fff;
+    --ink-on-nav: #4a5160;
+    --ink-on-nav-active: #2f49af;
     --ink-code: var(--c-code);
 
     /* Tier 2 — accent */
     --accent: var(--c-accent);
-    --accent-rgb: 13, 110, 253;
+    --accent-rgb: 59, 91, 219;
     --accent-ink: var(--c-accent-deep);
     --accent-link: var(--c-accent-link);
     --accent-soft: var(--c-accent-soft);
@@ -120,8 +120,8 @@
     --radius-slot: 0.15rem;
     --radius-md: 0.5rem;
     --radius-chip: 0.25rem;
-    --shadow-card: none;
-    --shadow-card-hover: 0 2px 8px rgba(13, 110, 253, 0.12);
+    --shadow-card: 0 1px 2px rgba(22, 25, 31, 0.05);
+    --shadow-card-hover: 0 4px 12px rgba(59, 91, 219, 0.1);
 
     /* Tier 2 — type */
     --font-body: 'Helvetica Neue', Helvetica, Arial, sans-serif;
@@ -355,91 +355,14 @@
 /*
    ---- Themes ----
 
-   Each block redefines primitives; the semantic tier above maps them through, so
-   nothing below this point knows which theme is active. The attribute is set by the
-   inline script in index.html before the first paint.
+   Slate is the light theme and is simply the values above, so data-theme="slate"
+   matches no block of its own and needs none. Dark redefines primitives; the semantic
+   tier maps them through, so nothing below this point knows which theme is active.
+   The attribute is set by the inline script in index.html before the first paint.
 
-   Selectors are :root[data-theme=…] rather than bare [data-theme=…] so they outrank
+   The selector is :root[data-theme=…] rather than bare [data-theme=…] so it outranks
    Bootstrap's own [data-bs-theme=dark] block on specificity rather than on file order.
 */
-
-/*
-   Blue — the established identity, tidied up. Same accent; the stock template's
-   purple-to-navy sidebar gives way to a flat slate, and the page sits on a faint
-   grey so white cards read as raised rather than as holes.
-*/
-:root[data-theme="blue"] {
-    --c-surface-3: #f1f3f5;
-    --surface-page: #f8f9fa;
-    --surface-nav: #1f2937;
-    --surface-nav-image: none;
-    --surface-nav-header: rgba(0, 0, 0, 0.25);
-    --surface-nav-active: var(--c-accent);
-    --surface-nav-hover: rgba(255, 255, 255, 0.08);
-    --surface-nav-control: rgba(255, 255, 255, 0.12);
-    --ink-on-nav: #cbd5e1;
-    --accent-link: var(--c-accent-deep);
-    --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04);
-}
-
-/*
-   Slate — cool neutrals and a quieter indigo, with a light sidebar. The chrome
-   recedes so the passage is the only saturated thing on the page.
-*/
-:root[data-theme="slate"] {
-    --c-ink-1: #16191f;
-    --c-ink-2: #2b303a;
-    --c-ink-3: #4a5160;
-    --c-ink-4: #767e8d;
-    --c-surface-1: #ffffff;
-    --c-surface-2: #f7f8fa;
-    --c-surface-3: #eef0f4;
-    --c-line-1: #e3e6eb;
-    --c-line-2: #ccd1da;
-
-    --c-accent: #3b5bdb;
-    --c-accent-deep: #2f49af;
-    --c-accent-link: #2f49af;
-    --c-accent-focus: #748ffc;
-    --c-accent-wash: #fafbff;
-    --c-accent-tint: #edf0fe;
-    --c-accent-soft: #eef1fd;
-    --c-accent-soft-2: #dbe2fb;
-    --c-accent-line: #bac6f7;
-    --c-accent-line-2: #a3b3f4;
-
-    --c-ok: #2f9e68;
-    --c-ok-deep: #1e7a4d;
-    --c-ok-fill: #ddf3e7;
-    --c-ok-ink: #14563a;
-    --c-bad: #d64550;
-    --c-bad-deep: #a92f39;
-    --c-bad-fill: #fbe4e6;
-    --c-bad-ink: #7d222a;
-    --c-warn: #d9a441;
-    --c-warn-fill: #fdf3dd;
-    --c-warn-line: #f2dfb0;
-    --c-warn-outline: #e6c576;
-    --c-warn-ink: #6b5312;
-    --c-live: #e07b39;
-    --c-live-rgb: 224, 123, 57;
-
-    --accent-rgb: 59, 91, 219;
-    --surface-page: #f7f8fa;
-
-    /* A light sidebar: the nav is a quiet index, not a slab of colour. */
-    --surface-nav: #eef0f4;
-    --surface-nav-image: none;
-    --surface-nav-header: rgba(22, 25, 31, 0.05);
-    --surface-nav-active: #dbe2fb;
-    --surface-nav-hover: rgba(22, 25, 31, 0.05);
-    --surface-nav-control: rgba(22, 25, 31, 0.08);
-    --ink-on-nav: #4a5160;
-    --ink-on-nav-active: #2f49af;
-
-    --shadow-card: 0 1px 2px rgba(22, 25, 31, 0.05);
-    --shadow-card-hover: 0 4px 12px rgba(59, 91, 219, 0.1);
-}
 
 /*
    Dark — for practising at night. The pastel state fills of a light theme turn to

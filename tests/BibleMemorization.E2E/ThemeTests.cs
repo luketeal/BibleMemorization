@@ -42,7 +42,7 @@ public sealed class ThemeTests(AppFixture fixture, ITestOutputHelper output)
     {
         await GotoAsync("?demo=1&theme=chartreuse");
 
-        Assert.Equal("blue", await ThemeAsync());
+        Assert.Equal("slate", await ThemeAsync());
     }
 
     [Fact]

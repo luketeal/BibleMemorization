@@ -18,7 +18,7 @@ public sealed class ThemeTour(AppFixture fixture, ITestOutputHelper output)
 {
     private readonly ITestOutputHelper _out = output;
 
-    private static readonly string[] Themes = ["blue", "slate", "dark"];
+    private static readonly string[] Themes = ["slate", "dark"];
 
     private static readonly ViewportSize Desktop = new() { Width = 1280, Height = 800 };
     private static readonly ViewportSize Mobile = new() { Width = 390, Height = 844 };

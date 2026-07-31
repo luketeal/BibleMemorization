@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+      # Temporary, so the theme work can be reviewed on the live site before it is
+      # merged. GitHub Pages serves one site per repository, so whichever branch
+      # deployed last is what visitors get — remove this line once the theme is
+      # settled, and push main to put it back.
+      - claude/ui-theme-improvements-t6c12g
   workflow_dispatch:
 
 permissions:

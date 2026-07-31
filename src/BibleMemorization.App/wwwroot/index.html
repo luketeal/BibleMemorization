@@ -21,7 +21,7 @@
     -->
     <script>
         (function () {
-            var THEMES = ['blue', 'slate', 'dark'];
+            var THEMES = ['slate', 'dark'];
             var KEY = 'biblememorization.theme';
             var DARK = '(prefers-color-scheme: dark)';
 
@@ -63,7 +63,7 @@
                 }
 
                 // No explicit choice: follow the operating system.
-                return prefersDark() ? 'dark' : 'blue';
+                return prefersDark() ? 'dark' : 'slate';
             }
 
             function apply(theme) {
