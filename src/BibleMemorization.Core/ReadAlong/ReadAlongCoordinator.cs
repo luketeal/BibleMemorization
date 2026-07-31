@@ -66,6 +66,38 @@ public sealed class ReadAlongCoordinator : IAsyncDisposable
     /// <summary>Token indices the user has supplied correctly this run.</summary>
     public HashSet<int> Filled { get; } = [];
 
+    /// <summary>
+    /// What the recognizer is hearing right now, interim guesses included, so the
+    /// blank being answered can show the words as they are spoken. Null whenever the
+    /// microphone is closed.
+    /// </summary>
+    public string? LiveTranscript { get; private set; }
+
+    /// <summary>Token indices covered by the step currently in flight.</summary>
+    public IReadOnlyList<int> CurrentTokenIndices =>
+        CurrentStepIndex >= 0 && CurrentStepIndex < Plan.Count
+            ? Plan[CurrentStepIndex].TokenIndices
+            : [];
+
+    /// <summary>How each answered token turned out, for colouring the passage.</summary>
+    public IReadOnlyDictionary<int, bool> TokenOutcomes
+    {
+        get
+        {
+            var map = new Dictionary<int, bool>();
+
+            foreach (var outcome in Outcomes)
+            {
+                foreach (var index in outcome.TokenIndices)
+                {
+                    map[index] = outcome.Correct;
+                }
+            }
+
+            return map;
+        }
+    }
+
     /// <summary>Raised whenever the phase or progress changes, so the UI can redraw.</summary>
     public event Action? Changed;
 
@@ -183,6 +215,9 @@ public sealed class ReadAlongCoordinator : IAsyncDisposable
     private async Task<string?> CaptureAsync(int timeoutMs, CancellationToken ct)
     {
         _heardSoFar = string.Empty;
+
+        // Cleared per window, so the previous blank's answer never lingers in the next.
+        LiveTranscript = null;
         _listening = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         SetPhase(ReadAlongPhase.Listening);
@@ -210,6 +245,7 @@ public sealed class ReadAlongCoordinator : IAsyncDisposable
         finally
         {
             _listening = null;
+            LiveTranscript = null;
             await SafeStopListeningAsync();
         }
     }
@@ -257,14 +293,24 @@ public sealed class ReadAlongCoordinator : IAsyncDisposable
             return;
         }
 
+        // Interim guesses are shown but never scored: the recognizer revises them as
+        // it goes, so committing one would be judging a half-finished sentence.
         if (!transcript.IsFinal)
         {
+            LiveTranscript = string.IsNullOrEmpty(_heardSoFar)
+                ? transcript.Text
+                : $"{_heardSoFar} {transcript.Text}";
+
+            Changed?.Invoke();
             return;
         }
 
         _heardSoFar = string.IsNullOrEmpty(_heardSoFar)
             ? transcript.Text
             : $"{_heardSoFar} {transcript.Text}";
+
+        LiveTranscript = _heardSoFar;
+        Changed?.Invoke();
 
         _listening?.TrySetResult(_heardSoFar);
     }

@@ -294,4 +294,117 @@ public class ReadAlongCoordinatorTests
             Assert.Single(coordinator.Outcomes);
         }
     }
+
+    // ---- What the passage view reads off the coordinator ----
+
+    [Fact]
+    public async Task Interim_speech_is_exposed_for_display_but_never_scored()
+    {
+        var seen = new List<string?>();
+
+        var coordinator = new ReadAlongCoordinator(_synth, _mic, async (ms, ct) =>
+        {
+            if (ms >= 50)
+            {
+                // An interim guess, then the revised final. Only the final decides.
+                _mic.Emit("gawd", isFinal: false);
+                _mic.Emit("God", isFinal: true);
+            }
+
+            await Task.Yield();
+        });
+
+        coordinator.Changed += () =>
+        {
+            if (coordinator.LiveTranscript is not null)
+            {
+                seen.Add(coordinator.LiveTranscript);
+            }
+        };
+
+        await using (coordinator)
+        {
+            await coordinator.RunAsync(Passage(), [1], Settings);
+
+            Assert.Contains("gawd", seen);
+            Assert.True(Assert.Single(coordinator.Outcomes).Correct);
+        }
+    }
+
+    [Fact]
+    public async Task The_live_transcript_is_cleared_once_the_window_closes()
+    {
+        await using var coordinator = Coordinator("God");
+
+        await coordinator.RunAsync(Passage(), [1], Settings);
+
+        // Otherwise the previous answer would linger in the next blank.
+        Assert.Null(coordinator.LiveTranscript);
+    }
+
+    [Fact]
+    public async Task Answered_tokens_are_reported_with_their_outcome()
+    {
+        await using var coordinator = Coordinator("God", "world");
+
+        await coordinator.RunAsync(Passage(), [1, 5], Settings);
+
+        var outcomes = coordinator.TokenOutcomes;
+        Assert.True(outcomes[1]);
+        Assert.True(outcomes[5]);
+    }
+
+    [Fact]
+    public async Task A_missed_token_is_reported_as_incorrect()
+    {
+        await using var coordinator = Coordinator("dog");
+
+        await coordinator.RunAsync(Passage(), [1], Settings);
+
+        Assert.False(coordinator.TokenOutcomes[1]);
+    }
+
+    [Fact]
+    public async Task Every_token_of_a_multi_word_prompt_is_reported()
+    {
+        await using var coordinator = Coordinator("the world");
+
+        await coordinator.RunAsync(Passage(), [4, 5], Settings);
+
+        var outcomes = coordinator.TokenOutcomes;
+        Assert.True(outcomes[4]);
+        Assert.True(outcomes[5]);
+    }
+
+    [Fact]
+    public async Task The_current_step_reports_which_tokens_it_covers()
+    {
+        var seenDuringListening = new List<int>();
+
+        var coordinator = new ReadAlongCoordinator(_synth, _mic, async (ms, ct) =>
+        {
+            if (ms >= 50)
+            {
+                _mic.Emit("God");
+            }
+
+            await Task.Yield();
+        });
+
+        coordinator.Changed += () =>
+        {
+            if (coordinator.Phase == ReadAlongPhase.Listening)
+            {
+                seenDuringListening.AddRange(coordinator.CurrentTokenIndices);
+            }
+        };
+
+        await using (coordinator)
+        {
+            await coordinator.RunAsync(Passage(), [1], Settings);
+        }
+
+        // The view highlights these, so they must name the blank being answered.
+        Assert.Contains(1, seenDuringListening);
+    }
 }

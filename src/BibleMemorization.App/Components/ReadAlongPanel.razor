@@ -19,36 +19,79 @@
         </p>
 
         <div class="toolbar">
-            <button class="btn @(_coordinator?.IsRunning == true ? "btn-danger" : "btn-primary")"
+            <button class="btn @(IsRunning ? "btn-danger" : "btn-primary")"
                     @onclick="ToggleAsync" data-testid="read-along-toggle">
-                @(_coordinator?.IsRunning == true ? "Stop" : "Start read-along")
+                @(IsRunning ? "Stop" : "Start read-along")
             </button>
 
-            @if (Hidden.Count == 0)
+            @if (IsRunning)
+            {
+                <span class="read-along-phase" data-testid="read-along-phase">@PhaseLabel</span>
+            }
+            else if (Hidden.Count == 0)
             {
                 <span class="field-hint">Nothing is hidden, so the app will just read it to you.</span>
             }
         </div>
 
-        @if (_coordinator is not null && _coordinator.IsRunning)
+        @* The passage reads like the fill-the-blanks view, so you can follow along
+           with your eyes while the app reads. Blanks fill in as you speak them. *@
+        <div class="passage-view read-along-view" data-testid="read-along-passage">
+            @foreach (var token in Passage)
+            {
+                @token.Leading
+
+                @if (!token.IsWord)
+                {
+                    <span class="pv-punct">@token.Trimmed</span>
+                }
+                else
+                {
+                    <span class="pv-word @WordClass(token.Index)">
+                        <span class="pv-punct">@token.Prefix</span>
+
+                        @if (!Hidden.Contains(token.Index))
+                        {
+                            <span class="pv-visible-static">@token.Word</span>
+                        }
+                        else if (Answered.TryGetValue(token.Index, out var correct))
+                        {
+                            <span class="ra-fill @(correct ? "ra-fill-correct" : "ra-fill-missed")"
+                                  data-testid="ra-filled" data-token-index="@token.Index">@token.Word</span>
+                        }
+                        else if (IsBeingAnswered(token.Index))
+                        {
+                            <span class="ra-fill ra-fill-live" data-testid="ra-live"
+                                  style="@BlankStyle(token)">@LiveText</span>
+                        }
+                        else
+                        {
+                            <span class="ra-blank" data-testid="ra-blank"
+                                  data-token-index="@token.Index" style="@BlankStyle(token)"></span>
+                        }
+
+                        <span class="pv-punct">@token.Suffix</span>
+                    </span>
+                }
+            }
+        </div>
+
+        @if (_coordinator?.Phase == ReadAlongPhase.Finished)
         {
-            <p class="read-along-phase" data-testid="read-along-phase">
-                @PhaseLabel
+            <p class="read-along-done" data-testid="read-along-done">
+                Finished &mdash; @_coordinator.Outcomes.Count(o => o.Correct)
+                of @_coordinator.Outcomes.Count filled in.
             </p>
         }
 
-        @if (_coordinator is not null && _coordinator.Outcomes.Count > 0)
+        @if (Misheard.Count > 0)
         {
             <ul class="read-along-log" data-testid="read-along-log">
-                @foreach (var outcome in _coordinator.Outcomes)
+                @foreach (var outcome in Misheard)
                 {
-                    <li class="@(outcome.Correct ? "ra-correct" : "ra-missed")">
+                    <li class="ra-missed">
                         <strong>@outcome.Expected</strong>
-                        @if (outcome.Correct)
-                        {
-                            <span> &mdash; got it</span>
-                        }
-                        else if (outcome.Heard is not null)
+                        @if (outcome.Heard is not null)
                         {
                             <span> &mdash; heard "@outcome.Heard"</span>
                         }
@@ -59,14 +102,6 @@
                     </li>
                 }
             </ul>
-        }
-
-        @if (_coordinator?.Phase == ReadAlongPhase.Finished)
-        {
-            <p class="read-along-done" data-testid="read-along-done">
-                Finished &mdash; @_coordinator.Outcomes.Count(o => o.Correct)
-                of @_coordinator.Outcomes.Count filled in.
-            </p>
         }
 
         @if (Mode.IsLive)
@@ -90,13 +125,55 @@
     private bool _isSupported;
     private bool _supportChecked;
 
+    private bool IsRunning => _coordinator?.IsRunning == true;
+
+    private IReadOnlyDictionary<int, bool> Answered =>
+        _coordinator?.TokenOutcomes ?? new Dictionary<int, bool>();
+
+    private IReadOnlyList<ListenOutcome> Misheard =>
+        _coordinator is null ? [] : [.. _coordinator.Outcomes.Where(o => !o.Correct)];
+
+    /// <summary>What to show in the blank being answered right now.</summary>
+    private string LiveText => _coordinator?.LiveTranscript ?? string.Empty;
+
     private string PhaseLabel => _coordinator?.Phase switch
     {
         ReadAlongPhase.Speaking => "Reading aloud…",
-        ReadAlongPhase.Pausing => "Your turn in a moment…",
-        ReadAlongPhase.Listening => "Listening — say the missing words",
+        ReadAlongPhase.Pausing => "Your turn…",
+        ReadAlongPhase.Listening => "Listening",
         _ => string.Empty,
     };
+
+    private bool IsBeingAnswered(int tokenIndex) =>
+        _coordinator?.Phase is ReadAlongPhase.Listening or ReadAlongPhase.Pausing
+        && _coordinator.CurrentTokenIndices.Contains(tokenIndex);
+
+    /// <summary>
+    /// Highlights the run the app is reading right now, so the eye can follow the
+    /// voice rather than hunting for the place.
+    /// </summary>
+    private string? WordClass(int tokenIndex)
+    {
+        if (_coordinator is null || !IsRunning)
+        {
+            return null;
+        }
+
+        if (_coordinator.Phase == ReadAlongPhase.Speaking
+            && _coordinator.CurrentTokenIndices.Contains(tokenIndex))
+        {
+            return "ra-speaking";
+        }
+
+        return IsBeingAnswered(tokenIndex) ? "ra-awaiting" : null;
+    }
+
+    /// <summary>Sizes an unanswered blank to the word it hides, as the study view does.</summary>
+    private static string BlankStyle(Token token)
+    {
+        var width = Math.Max(token.Word.Length, 2);
+        return string.Create(System.Globalization.CultureInfo.InvariantCulture, $"min-width: {width * 0.62m:0.##}em");
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -115,9 +192,9 @@
 
     private async Task ToggleAsync()
     {
-        if (_coordinator?.IsRunning == true)
+        if (IsRunning)
         {
-            await _coordinator.StopAsync();
+            await _coordinator!.StopAsync();
             StateHasChanged();
             return;
         }

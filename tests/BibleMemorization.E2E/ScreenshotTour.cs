@@ -101,14 +101,41 @@ public sealed class ScreenshotTour(AppFixture fixture, ITestOutputHelper output)
         await ShotAsync("21-read-along-listening");
         await Page.EvaluateAsync("async () => await window.__bmTest.emitTranscript('God', true)");
 
-        await Assertions.Expect(Page.GetByTestId("read-along-log"))
-            .ToContainTextAsync("got it", new() { Timeout = 20_000 });
+        // A correct answer now appears in the passage itself, not in the log.
+        await Assertions.Expect(Page.GetByTestId("ra-filled"))
+            .ToHaveTextAsync("God", new() { Timeout = 20_000 });
 
         await WaitForListeningAsync();
         await Page.EvaluateAsync("async () => await window.__bmTest.emitTranscript('earth', true)");
 
         await Page.GetByTestId("read-along-done").WaitForAsync(new() { Timeout = 30_000 });
         await ShotAsync("22-read-along-finished");
+    }
+
+    [Fact]
+    public async Task Capture_read_along_mobile()
+    {
+        await Page.SetViewportSizeAsync(Mobile.Width, Mobile.Height);
+
+        await GotoAsync("library?demo=1");
+        await Page.GetByTestId("practice-link").First.ClickAsync();
+        await Page.GetByTestId("passage-view").WaitForAsync();
+
+        await Page.Locator("[data-testid=word]", new() { HasTextString = "God" }).First.ClickAsync();
+        await Page.Locator("[data-testid=word]", new() { HasTextString = "world" }).First.ClickAsync();
+
+        await Page.GetByTestId("mode-test").ClickAsync();
+        await Page.GetByTestId("input-read-along").ClickAsync();
+        await ShotAsync("mobile-10-read-along-ready");
+
+        await Page.GetByTestId("read-along-toggle").ClickAsync();
+        await WaitForListeningAsync();
+        await Page.EvaluateAsync("async () => await window.__bmTest.emitTranscript('God', true)");
+
+        await Assertions.Expect(Page.GetByTestId("ra-filled"))
+            .ToHaveTextAsync("God", new() { Timeout = 20_000 });
+        await WaitForListeningAsync();
+        await ShotAsync("mobile-11-read-along-filling");
     }
 
     [Fact]

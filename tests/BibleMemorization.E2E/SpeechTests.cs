@@ -173,9 +173,12 @@ public sealed class SpeechTests(AppFixture fixture, ITestOutputHelper output)
             .ToContainTextAsync("Listening", new() { Timeout = 15_000 });
         await SayAsync("God");
 
-        await Assertions.Expect(Page.GetByTestId("read-along-log"))
-            .ToContainTextAsync("got it", new() { Timeout = 15_000 });
+        // A correct answer shows in the passage where the blank was, rather than in
+        // the log — the log is only for what went wrong.
+        await Assertions.Expect(Page.GetByTestId("ra-filled"))
+            .ToHaveTextAsync("God", new() { Timeout = 15_000 });
         await Assertions.Expect(Page.GetByTestId("read-along-done")).ToContainTextAsync("1 of 1");
+        await Assertions.Expect(Page.GetByTestId("read-along-log")).ToHaveCountAsync(0);
     }
 
     [Fact]
@@ -238,5 +241,111 @@ public sealed class SpeechTests(AppFixture fixture, ITestOutputHelper output)
 
         await Assertions.Expect(Page.GetByTestId("read-along-toggle")).ToHaveTextAsync("Start read-along");
         Assert.False(await IsMicOpenAsync());
+    }
+
+    // ---- The read-along passage view ----
+
+    [Fact]
+    public async Task Read_along_shows_the_passage_with_blanks_before_it_starts()
+    {
+        await OpenPracticeAsync();
+
+        await Page.Locator("[data-testid=word]", new() { HasTextString = "God" }).First.ClickAsync();
+        await Page.GetByTestId("mode-test").ClickAsync();
+        await Page.GetByTestId("input-read-along").ClickAsync();
+
+        // The text is readable straight away, exactly as in the fill-the-blanks view.
+        await Assertions.Expect(Page.GetByTestId("read-along-passage"))
+            .ToContainTextAsync("For");
+        await Assertions.Expect(Page.GetByTestId("read-along-passage"))
+            .ToContainTextAsync("so loved the world");
+        await Assertions.Expect(Page.GetByTestId("ra-blank")).ToHaveCountAsync(1);
+    }
+
+    [Fact]
+    public async Task The_hidden_word_is_not_given_away_by_the_passage_view()
+    {
+        await OpenPracticeAsync();
+
+        await Page.Locator("[data-testid=word]", new() { HasTextString = "God" }).First.ClickAsync();
+        await Page.GetByTestId("mode-test").ClickAsync();
+        await Page.GetByTestId("input-read-along").ClickAsync();
+
+        var text = await Page.GetByTestId("read-along-passage").InnerTextAsync();
+        Assert.DoesNotContain("God", text);
+    }
+
+    /// <summary>
+    /// What was asked for: the blank fills in with what you say, in place, as the
+    /// read-along reaches it.
+    /// </summary>
+    [Fact]
+    public async Task A_blank_fills_in_where_it_sits_once_spoken()
+    {
+        await OpenPracticeAsync();
+
+        await Page.Locator("[data-testid=word]", new() { HasTextString = "God" }).First.ClickAsync();
+        await Page.GetByTestId("mode-test").ClickAsync();
+        await Page.GetByTestId("input-read-along").ClickAsync();
+        await Page.GetByTestId("read-along-toggle").ClickAsync();
+
+        await Assertions.Expect(Page.GetByTestId("read-along-phase"))
+            .ToContainTextAsync("Listening", new() { Timeout = 15_000 });
+        await SayAsync("God");
+
+        await Assertions.Expect(Page.GetByTestId("ra-filled"))
+            .ToHaveTextAsync("God", new() { Timeout = 15_000 });
+
+        // The passage now reads straight through.
+        await Assertions.Expect(Page.GetByTestId("read-along-passage"))
+            .ToContainTextAsync("For God so loved the world");
+        await Assertions.Expect(Page.GetByTestId("ra-blank")).ToHaveCountAsync(0);
+    }
+
+    [Fact]
+    public async Task Words_appear_in_the_blank_while_they_are_still_being_spoken()
+    {
+        await OpenPracticeAsync();
+
+        await Page.Locator("[data-testid=word]", new() { HasTextString = "God" }).First.ClickAsync();
+        await Page.GetByTestId("mode-test").ClickAsync();
+        await Page.GetByTestId("input-read-along").ClickAsync();
+        await Page.GetByTestId("read-along-toggle").ClickAsync();
+
+        await Assertions.Expect(Page.GetByTestId("read-along-phase"))
+            .ToContainTextAsync("Listening", new() { Timeout = 15_000 });
+
+        // An interim guess: shown live, but not yet judged.
+        await Page.EvaluateAsync(
+            "async () => await window.__bmTest.emitTranscript('gaw', false)");
+
+        await Assertions.Expect(Page.GetByTestId("ra-live")).ToHaveTextAsync("gaw");
+        await Assertions.Expect(Page.GetByTestId("ra-filled")).ToHaveCountAsync(0);
+    }
+
+    [Fact]
+    public async Task A_missed_word_is_revealed_in_place()
+    {
+        await OpenPracticeAsync();
+
+        await GotoAsync("settings?demo=1");
+        await Page.GetByTestId("retry-miss").UncheckAsync();
+        await Page.GetByTestId("nav-library").ClickAsync();
+        await Page.GetByTestId("practice-link").First.ClickAsync();
+
+        await Page.Locator("[data-testid=word]", new() { HasTextString = "God" }).First.ClickAsync();
+        await Page.GetByTestId("mode-test").ClickAsync();
+        await Page.GetByTestId("input-read-along").ClickAsync();
+        await Page.GetByTestId("read-along-toggle").ClickAsync();
+
+        await Assertions.Expect(Page.GetByTestId("read-along-phase"))
+            .ToContainTextAsync("Listening", new() { Timeout = 15_000 });
+        await SayAsync("dog");
+
+        // The right word appears where the blank was, so the passage still reads
+        // correctly, and the log says what was actually heard.
+        await Assertions.Expect(Page.GetByTestId("ra-filled"))
+            .ToHaveTextAsync("God", new() { Timeout = 15_000 });
+        await Assertions.Expect(Page.GetByTestId("read-along-log")).ToContainTextAsync("heard \"dog\"");
     }
 }

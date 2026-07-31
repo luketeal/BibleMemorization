@@ -525,6 +525,59 @@ code {
     color: #0a58ca;
 }
 
+.read-along-view { margin-top: 0.75rem; }
+
+/* An unanswered blank, sized to the word it hides, as in the study view. */
+.read-along-view .ra-blank {
+    display: inline-block;
+    height: 1.35em;
+    vertical-align: baseline;
+    border-bottom: 2px solid #0d6efd;
+    background: #eef4ff;
+    border-radius: 0.15rem 0.15rem 0 0;
+}
+
+.read-along-view .ra-fill {
+    display: inline-block;
+    padding: 0 0.2em;
+    border-bottom: 2px solid transparent;
+    border-radius: 0.2rem;
+    text-align: center;
+}
+
+/* Words appearing as they are spoken, before the answer is judged. */
+.read-along-view .ra-fill-live {
+    background: #fff3cd;
+    border-bottom-color: #ffc107;
+    color: #664d03;
+    font-style: italic;
+    min-height: 1.35em;
+}
+
+.read-along-view .ra-fill-correct {
+    background: #d1e7dd;
+    border-bottom-color: #198754;
+    color: #0f5132;
+}
+
+.read-along-view .ra-fill-missed {
+    background: #f8d7da;
+    border-bottom-color: #dc3545;
+    color: #842029;
+}
+
+/* The run being read aloud, so the eye can follow the voice. */
+.read-along-view .ra-speaking .pv-visible-static {
+    background: #cfe2ff;
+    border-radius: 0.2rem;
+}
+
+.read-along-view .ra-awaiting .ra-blank {
+    background: #fff3cd;
+    border-bottom-color: #ffc107;
+    box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.25);
+}
+
 .read-along-log {
     list-style: none;
     padding: 0;
