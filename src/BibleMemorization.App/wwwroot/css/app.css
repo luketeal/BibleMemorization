@@ -1,5 +1,198 @@
+/*
+   ---- Design tokens ----
+
+   Two tiers. Tier 1 (--c-*) is the raw palette: the only place a literal colour
+   appears. Tier 2 gives those colours roles, and is what every rule below actually
+   references. A theme therefore redefines about twenty Tier 1 values and inherits
+   every mapping, instead of restating the whole stylesheet.
+
+   These have to live in this file. Blazor's scoped-CSS rewriter appends the scope
+   attribute to the last compound selector, so a `:root` block inside a .razor.css
+   would compile to `:root[b-abc123]` and match nothing. Scoped stylesheets can read
+   these tokens, but they cannot declare them.
+
+   This file is also loaded after Bootstrap, which is what lets the bridge block
+   below override Bootstrap's own variables.
+*/
+:root {
+    /* Tier 1 — palette primitives */
+    --c-white: #fff;
+    --c-ink-1: #212529;
+    --c-ink-2: #343a40;
+    --c-ink-3: #495057;
+    --c-ink-4: #6c757d;
+    --c-surface-1: #fff;
+    --c-surface-2: #fbfbfb;
+    --c-surface-3: #f7f7f7;
+    --c-line-1: #dee2e6;
+    --c-line-2: #ced4da;
+    --c-track: #e0e0e0;
+
+    --c-accent: #0d6efd;
+    --c-accent-deep: #0a58ca;
+    --c-accent-link: #0071c1;
+    --c-accent-focus: #258cfb;
+    --c-accent-wash: #f8fbff;
+    --c-accent-tint: #e7f1ff;
+    --c-accent-soft: #eef4ff;
+    --c-accent-soft-2: #cfe2ff;
+    --c-accent-line: #b6d4fe;
+    --c-accent-line-2: #9ec5fe;
+
+    --c-ok: #198754;
+    --c-ok-deep: #146c43;
+    --c-ok-fill: #d1e7dd;
+    --c-ok-ink: #0f5132;
+    --c-ok-outline: #26b050;
+
+    --c-bad: #dc3545;
+    --c-bad-deep: #b02a37;
+    --c-bad-fill: #f8d7da;
+    --c-bad-ink: #842029;
+    --c-bad-solid: #b32121;
+
+    --c-warn: #ffc107;
+    --c-warn-fill: #fff3cd;
+    --c-warn-line: #ffe69c;
+    --c-warn-outline: #ffda6a;
+    --c-warn-ink: #664d03;
+
+    --c-live: #fd7e14;
+    --c-live-rgb: 253, 126, 20;
+    --c-code: #c02d76;
+
+    /* Tier 2 — surfaces */
+    --surface-page: var(--c-surface-1);
+    --surface-raised: var(--c-surface-1);
+    --surface-sunken: var(--c-surface-2);
+    --surface-wash: var(--c-accent-wash);
+    --surface-notice: var(--c-accent-tint);
+    --surface-topbar: var(--c-surface-3);
+    /* The sidebar. --surface-nav-image lets a theme layer a gradient over the fill;
+       themes that want a flat sidebar leave it as none. */
+    --surface-nav: rgb(5, 39, 103);
+    --surface-nav-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+    --surface-nav-header: rgba(0, 0, 0, 0.4);
+    --surface-nav-active: rgba(255, 255, 255, 0.37);
+    --surface-nav-hover: rgba(255, 255, 255, 0.1);
+    --surface-nav-control: rgba(255, 255, 255, 0.1);
+
+    /* Tier 2 — ink */
+    --ink-primary: var(--c-ink-1);
+    --ink-body: var(--c-ink-2);
+    --ink-secondary: var(--c-ink-3);
+    --ink-muted: var(--c-ink-4);
+    --ink-on-accent: var(--c-white);
+    --ink-on-nav: #d7d7d7;
+    --ink-on-nav-active: #fff;
+    --ink-code: var(--c-code);
+
+    /* Tier 2 — accent */
+    --accent: var(--c-accent);
+    --accent-rgb: 13, 110, 253;
+    --accent-ink: var(--c-accent-deep);
+    --accent-link: var(--c-accent-link);
+    --accent-soft: var(--c-accent-soft);
+    --accent-soft-hover: var(--c-accent-soft-2);
+    --accent-ring: var(--c-accent-focus);
+
+    /* Tier 2 — borders */
+    --border-subtle: var(--c-line-1);
+    --border-strong: var(--c-line-2);
+    --border-accent: var(--c-accent-line);
+    --border-accent-2: var(--c-accent-line-2);
+
+    /* Tier 2 — semantic states */
+    --ok-fill: var(--c-ok-fill);
+    --ok-rule: var(--c-ok);
+    --ok-ink: var(--c-ok-ink);
+    --ok-ink-strong: var(--c-ok-deep);
+    --bad-fill: var(--c-bad-fill);
+    --bad-rule: var(--c-bad);
+    --bad-ink: var(--c-bad-ink);
+    --bad-ink-strong: var(--c-bad-deep);
+    --warn-fill: var(--c-warn-fill);
+    --warn-rule: var(--c-warn-line);
+    --warn-ink: var(--c-warn-ink);
+
+    /* Tier 2 — shape */
+    --radius-sm: 0.2rem;
+    --radius-slot: 0.15rem;
+    --radius-md: 0.5rem;
+    --radius-chip: 0.25rem;
+    --shadow-card-hover: 0 2px 8px rgba(13, 110, 253, 0.12);
+
+    /* Tier 2 — type */
+    --font-body: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    /* The passage itself. Split from --font-body so a theme can give scripture a
+       reading face without touching the interface. */
+    --font-reading: var(--font-body);
+    --measure-prose: 40rem;
+
+    /*
+       ---- The passage view ----
+
+       The app's hero surface, prefixed --pv-* so a theme can tune the reading
+       experience without disturbing the rest of the interface.
+    */
+    --pv-surface: var(--c-surface-1);
+    --pv-border: var(--border-subtle);
+    --pv-ink: var(--ink-primary);
+    --pv-font: var(--font-reading);
+    --pv-size: 1.25rem;
+    --pv-size-mobile: 1.1rem;
+    --pv-leading: 2.4;
+    --pv-leading-mobile: 2.2;
+    --pv-pad: 1.25rem;
+    --pv-pad-mobile: 0.75rem;
+    --pv-measure: 46rem;
+
+    /*
+       The markup supplies only a character count, as --pv-chars in an inline style;
+       the em-per-character figure lives here, next to the reading face it describes.
+       Keeping it in CSS is what lets a theme change the face without desynchronizing
+       every blank from the word behind it.
+    */
+    --pv-ch-width: 0.62em;
+    /* A typed answer needs more room per character than a static blank. */
+    --pv-ch-width-input: 0.72em;
+
+    /* Keep --pv-slot-height and --pv-slot-leading equal; see the slot rule below. */
+    --pv-slot-height: 1.7em;
+    --pv-slot-leading: 1.7em;
+    --pv-slot-pad-x: 0.2em;
+    --pv-slot-bg: var(--accent-soft);
+    --pv-slot-bg-hover: var(--accent-soft-hover);
+    --pv-slot-rule: var(--accent);
+    --pv-slot-rule-width: 2px;
+    --pv-hint-ink: var(--accent-ink);
+    --pv-hint-ring: var(--border-accent-2);
+    --pv-cue-ink: var(--accent-ink);
+    --pv-input-bg: var(--c-accent-wash);
+    --pv-input-bg-focus: var(--c-white);
+    --pv-input-ring: var(--accent);
+    --pv-word-hover-bg: var(--c-warn-line);
+    --pv-word-hover-ring: var(--c-warn-outline);
+    --pv-correct-fill: var(--ok-fill);
+    --pv-correct-rule: var(--ok-rule);
+    --pv-wrong-fill: var(--bad-fill);
+    --pv-wrong-rule: var(--bad-rule);
+    --pv-missing-fill: var(--warn-fill);
+    --pv-missing-ink: var(--warn-ink);
+
+    /* ---- Read-along ---- */
+    --ra-blank-height: 1.35em;
+    --ra-live-fill: var(--c-warn-line);
+    --ra-live-rule: var(--c-live);
+    --ra-halo-rgb: var(--c-live-rgb);
+    --ra-speaking-fill: var(--accent-soft-hover);
+    --ra-caret: var(--c-live);
+    --ra-pulse-duration: 1.4s;
+    --ra-phase-ink: var(--accent-ink);
+}
+
 html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: var(--font-body);
 }
 
 h1:focus {
@@ -7,17 +200,17 @@ h1:focus {
 }
 
 a, .btn-link {
-    color: #0071c1;
+    color: var(--accent-link);
 }
 
 .btn-primary {
-    color: #fff;
+    color: var(--ink-on-accent);
     background-color: #1b6ec2;
     border-color: #1861ac;
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem var(--accent-ring);
 }
 
 .content {
@@ -25,7 +218,7 @@ a, .btn-link {
 }
 
 .valid.modified:not([type=checkbox]) {
-    outline: 1px solid #26b050;
+    outline: 1px solid var(--c-ok-outline);
 }
 
 .invalid {
@@ -78,7 +271,7 @@ a, .btn-link {
 
     .loading-progress circle {
         fill: none;
-        stroke: #e0e0e0;
+        stroke: var(--c-track);
         stroke-width: 0.6rem;
         transform-origin: 50% 50%;
         transform: rotate(-90deg);
@@ -102,7 +295,7 @@ a, .btn-link {
     }
 
 code {
-    color: #c02d76;
+    color: var(--ink-code);
 }
 
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
@@ -123,31 +316,31 @@ code {
 
 .home-card {
     display: block;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--border-subtle);
     border-radius: 0.5rem;
     padding: 1rem 1.25rem;
-    background: #fff;
+    background: var(--surface-raised);
     text-decoration: none;
     color: inherit;
     transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .home-card:hover {
-    border-color: #0d6efd;
-    box-shadow: 0 2px 8px rgba(13, 110, 253, 0.12);
+    border-color: var(--accent);
+    box-shadow: var(--shadow-card-hover);
     text-decoration: none;
 }
 
-.home-card h2 { color: #0a58ca; }
+.home-card h2 { color: var(--accent-ink); }
 
 .home-notes {
     margin-top: 2rem;
-    max-width: 40rem;
+    max-width: var(--measure-prose);
 }
 
 .home-notes h2 { font-size: 1.05rem; }
 
-.home-notes ul { color: #495057; padding-left: 1.1rem; }
+.home-notes ul { color: var(--ink-secondary); padding-left: 1.1rem; }
 
 .home-notes li { margin-bottom: 0.5rem; }
 
@@ -158,12 +351,12 @@ code {
 
 .home-card p {
     margin: 0;
-    color: #495057;
+    color: var(--ink-secondary);
 }
 
 .build-tag {
     font-weight: 600;
-    color: #495057;
+    color: var(--ink-secondary);
 }
 
 /* ---- Layout helpers ---- */
@@ -178,13 +371,13 @@ code {
 .toolbar-spacer { flex: 1 1 auto; }
 
 .empty-state {
-    color: #6c757d;
+    color: var(--ink-muted);
     font-style: italic;
     padding: 2rem 0;
 }
 
 .field-hint {
-    color: #6c757d;
+    color: var(--ink-muted);
     font-size: 0.875rem;
     margin-top: 0.25rem;
 }
@@ -192,8 +385,8 @@ code {
 .form-group { margin-bottom: 1rem; }
 
 .demo-banner {
-    background: #fff3cd;
-    border: 1px solid #ffe69c;
+    background: var(--warn-fill);
+    border: 1px solid var(--warn-rule);
     border-radius: 0.5rem;
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
@@ -215,10 +408,10 @@ code {
     gap: 1rem;
     justify-content: space-between;
     align-items: flex-start;
-    border: 1px solid #dee2e6;
-    border-radius: 0.5rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
     padding: 1rem;
-    background: #fff;
+    background: var(--surface-raised);
 }
 
 .passage-card-main { min-width: 0; }
@@ -229,14 +422,14 @@ code {
 }
 
 .passage-meta {
-    color: #6c757d;
+    color: var(--ink-muted);
     font-size: 0.85rem;
     margin: 0 0 0.5rem;
 }
 
 .passage-preview {
     margin: 0;
-    color: #343a40;
+    color: var(--ink-body);
 }
 
 .passage-card-actions {
@@ -247,8 +440,8 @@ code {
 }
 
 .import-prompt {
-    border: 1px solid #b6d4fe;
-    background: #e7f1ff;
+    border: 1px solid var(--border-accent);
+    background: var(--surface-notice);
     border-radius: 0.5rem;
     padding: 1rem;
     margin-bottom: 1rem;
@@ -264,19 +457,19 @@ code {
 
 .dictation-status {
     margin-left: 0.75rem;
-    color: #6c757d;
+    color: var(--ink-muted);
 }
 
 /* ---- Settings ---- */
 .settings-section {
-    border-top: 1px solid #dee2e6;
+    border-top: 1px solid var(--border-subtle);
     padding: 1.25rem 0;
-    max-width: 40rem;
+    max-width: var(--measure-prose);
 }
 
 .settings-section h2 { font-size: 1.15rem; }
 
-.danger-zone h2 { color: #b02a37; }
+.danger-zone h2 { color: var(--bad-ink-strong); }
 
 @media (max-width: 640px) {
     .passage-card { flex-direction: column; }
@@ -292,10 +485,10 @@ code {
 }
 
 .import-panel {
-    border: 1px solid #dee2e6;
-    border-radius: 0.5rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
     padding: 1rem;
-    background: #fff;
+    background: var(--surface-raised);
 }
 
 .import-panel h2 {
@@ -304,8 +497,8 @@ code {
 }
 
 .preview-panel {
-    border: 1px solid #b6d4fe;
-    background: #f8fbff;
+    border: 1px solid var(--border-accent);
+    background: var(--surface-wash);
     border-radius: 0.5rem;
     padding: 1rem 1.25rem;
     margin-top: 1rem;
@@ -316,10 +509,10 @@ code {
 .preview-text {
     font-size: 1.1rem;
     line-height: 1.7;
-    border-left: 3px solid #b6d4fe;
+    border-left: 3px solid var(--border-accent);
     padding-left: 1rem;
     margin: 1rem 0;
-    color: #212529;
+    color: var(--ink-primary);
 }
 
 .verse-range {
@@ -334,7 +527,7 @@ code {
     width: auto;
     padding: 0.25rem 1.75rem 0.25rem 0.5rem;
     margin-left: 0.35rem;
-    border: 1px solid #ced4da;
+    border: 1px solid var(--border-strong);
     border-radius: 0.25rem;
 }
 
@@ -349,7 +542,7 @@ code {
 .mode-tabs {
     display: flex;
     gap: 0.25rem;
-    border-bottom: 2px solid #dee2e6;
+    border-bottom: 2px solid var(--border-subtle);
     margin: 1rem 0;
 }
 
@@ -359,31 +552,31 @@ code {
     border-bottom: 3px solid transparent;
     padding: 0.5rem 1rem;
     font-size: 1rem;
-    color: #495057;
+    color: var(--ink-secondary);
     cursor: pointer;
     margin-bottom: -2px;
 }
 
 .mode-tab.active {
-    color: #0d6efd;
-    border-bottom-color: #0d6efd;
+    color: var(--accent);
+    border-bottom-color: var(--accent);
     font-weight: 600;
 }
 
 .passage-view {
-    font-size: 1.25rem;
-    line-height: 2.4;
-    padding: 1.25rem;
-    border: 1px solid #dee2e6;
+    font-size: var(--pv-size);
+    line-height: var(--pv-leading);
+    padding: var(--pv-pad);
+    border: 1px solid var(--pv-border);
     border-radius: 0.5rem;
-    background: #fff;
+    background: var(--pv-surface);
     white-space: pre-wrap;
-    max-width: 46rem;
+    max-width: var(--pv-measure);
 }
 
 .pv-word { white-space: nowrap; }
 
-.pv-punct { color: #212529; }
+.pv-punct { color: var(--pv-ink); }
 
 .pv-visible,
 .pv-visible-static {
@@ -391,8 +584,8 @@ code {
     border: none;
     padding: 0 0.05em;
     font: inherit;
-    color: #212529;
-    border-radius: 0.2rem;
+    color: var(--pv-ink);
+    border-radius: var(--radius-sm);
 }
 
 .pv-visible { cursor: default; }
@@ -400,24 +593,11 @@ code {
 .interactive .pv-visible { cursor: pointer; }
 
 .interactive .pv-visible:hover {
-    background: #ffe69c;
-    outline: 2px solid #ffda6a;
+    background: var(--pv-word-hover-bg);
+    outline: 2px solid var(--pv-word-hover-ring);
 }
 
-/*
-   A blank keeps the width of the word it hides, so its length still cues recall.
-
-   The markup supplies only a character count, as `--pv-chars` in an inline style;
-   the em-per-character figure lives here, next to the reading face it describes.
-   Keeping it in CSS is what lets a theme change the face without desynchronizing
-   every blank from the word behind it.
-*/
-:root {
-    --pv-ch-width: 0.62em;
-    /* A typed answer needs more room per character than a static blank. */
-    --pv-ch-width-input: 0.72em;
-}
-
+/* A blank keeps the width of the word it hides, so its length still cues recall. */
 /*
    One box for every inline slot — an empty blank, a one-letter hint, an input.
    Height and alignment are pinned here rather than left to the content, because
@@ -436,14 +616,14 @@ code {
 .pv-input {
     display: inline-block;
     box-sizing: border-box;
-    height: 1.7em;
-    line-height: 1.7em;
-    padding: 0 0.2em;
+    height: var(--pv-slot-height);
+    line-height: var(--pv-slot-leading);
+    padding: 0 var(--pv-slot-pad-x);
     vertical-align: middle;
     border: none;
-    border-bottom: 2px solid #0d6efd;
-    border-radius: 0.15rem 0.15rem 0 0;
-    background: #eef4ff;
+    border-bottom: var(--pv-slot-rule-width) solid var(--pv-slot-rule);
+    border-radius: var(--radius-slot) var(--radius-slot) 0 0;
+    background: var(--pv-slot-bg);
 }
 
 .pv-blank {
@@ -453,7 +633,7 @@ code {
 
 .interactive .pv-blank { cursor: pointer; }
 
-.interactive .pv-blank:hover { background: #cfe2ff; }
+.interactive .pv-blank:hover { background: var(--pv-slot-bg-hover); }
 
 /*
    An initial standing in for a whole word. It is widened to the word's own length
@@ -463,7 +643,7 @@ code {
 .pv-hint {
     /* A button so the initial can be tapped away, but it should read as text. */
     font: inherit;
-    color: #0a58ca;
+    color: var(--pv-hint-ink);
     font-weight: 600;
     text-align: left;
     cursor: default;
@@ -474,8 +654,8 @@ code {
 .interactive .pv-hint { cursor: pointer; }
 
 .interactive .pv-hint:hover {
-    background: #cfe2ff;
-    outline: 2px solid #9ec5fe;
+    background: var(--pv-slot-bg-hover);
+    outline: 2px solid var(--pv-hint-ring);
 }
 
 /*
@@ -485,47 +665,47 @@ code {
 .pv-cue {
     display: inline-block;
     font-weight: 700;
-    color: #0a58ca;
+    color: var(--pv-cue-ink);
     margin-right: 0.1em;
 }
 
 .pv-input {
     font: inherit;
-    background: #f8fbff;
+    background: var(--pv-input-bg);
     text-align: left;
     width: calc(var(--pv-chars) * var(--pv-ch-width-input));
 }
 
 .pv-input:focus {
-    outline: 2px solid #0d6efd;
-    background: #fff;
+    outline: 2px solid var(--pv-input-ring);
+    background: var(--pv-input-bg-focus);
 }
 
-.pv-input-correct { border-bottom-color: #198754; background: #d1e7dd; }
+.pv-input-correct { border-bottom-color: var(--pv-correct-rule); background: var(--pv-correct-fill); }
 
-.pv-input-wrong { border-bottom-color: #dc3545; background: #f8d7da; }
+.pv-input-wrong { border-bottom-color: var(--pv-wrong-rule); background: var(--pv-wrong-fill); }
 
 .pv-correct .pv-visible,
-.pv-correct .pv-visible-static { background: #d1e7dd; }
+.pv-correct .pv-visible-static { background: var(--pv-correct-fill); }
 
 .pv-wrong .pv-visible,
-.pv-wrong .pv-visible-static { background: #f8d7da; text-decoration: underline wavy #dc3545; }
+.pv-wrong .pv-visible-static { background: var(--pv-wrong-fill); text-decoration: underline wavy var(--pv-wrong-rule); }
 
 .pv-missing .pv-visible,
-.pv-missing .pv-visible-static { background: #fff3cd; color: #664d03; }
+.pv-missing .pv-visible-static { background: var(--pv-missing-fill); color: var(--pv-missing-ink); }
 
 /* ---- Results ---- */
 .results-panel {
     margin-top: 1.5rem;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--border-subtle);
     border-radius: 0.5rem;
     padding: 1rem 1.25rem;
-    background: #fbfbfb;
+    background: var(--surface-sunken);
 }
 
 .results-panel h2 { font-size: 1.25rem; }
 
-.results-perfect { color: #146c43; font-weight: 600; }
+.results-perfect { color: var(--ok-ink-strong); font-weight: 600; }
 
 .results-legend {
     list-style: none;
@@ -534,7 +714,7 @@ code {
     padding: 0;
     margin: 0.75rem 0;
     font-size: 0.85rem;
-    color: #495057;
+    color: var(--ink-secondary);
     flex-wrap: wrap;
 }
 
@@ -547,28 +727,28 @@ code {
     margin-right: 0.25rem;
 }
 
-.results-legend .pv-correct { background: #d1e7dd; }
-.results-legend .pv-wrong { background: #f8d7da; }
-.results-legend .pv-missing { background: #fff3cd; }
+.results-legend .pv-correct { background: var(--pv-correct-fill); }
+.results-legend .pv-wrong { background: var(--pv-wrong-fill); }
+.results-legend .pv-missing { background: var(--pv-missing-fill); }
 
 .history-panel { margin-top: 1.5rem; max-width: 30rem; }
 
 .history-panel h2 { font-size: 1.05rem; }
 
-.history-panel ul { padding-left: 1.1rem; color: #495057; }
+.history-panel ul { padding-left: 1.1rem; color: var(--ink-secondary); }
 
 /* ---- Spoken recall ---- */
-.listening-indicator { color: #b02a37; font-weight: 600; }
+.listening-indicator { color: var(--bad-ink-strong); font-weight: 600; }
 
 .heard-text {
-    border-left: 3px solid #ced4da;
+    border-left: 3px solid var(--border-strong);
     padding-left: 1rem;
-    color: #495057;
+    color: var(--ink-secondary);
     font-style: italic;
 }
 
 @media (max-width: 640px) {
-    .passage-view { font-size: 1.1rem; line-height: 2.2; padding: 0.75rem; }
+    .passage-view { font-size: var(--pv-size-mobile); line-height: var(--pv-leading-mobile); padding: var(--pv-pad-mobile); }
 }
 
 /* ---- Read-along ---- */
@@ -576,7 +756,7 @@ code {
 
 .read-along-phase {
     font-weight: 600;
-    color: #0a58ca;
+    color: var(--ra-phase-ink);
 }
 
 .read-along-view { margin-top: 0.75rem; }
@@ -584,10 +764,10 @@ code {
 /* An unanswered blank, sized to the word it hides, as in the study view. */
 .read-along-view .ra-blank {
     display: inline-block;
-    height: 1.35em;
+    height: var(--ra-blank-height);
     vertical-align: baseline;
-    border-bottom: 3px solid #0d6efd;
-    background: #eef4ff;
+    border-bottom: 3px solid var(--pv-slot-rule);
+    background: var(--pv-slot-bg);
     border-radius: 0.15rem 0.15rem 0 0;
     min-width: calc(var(--pv-chars) * var(--pv-ch-width));
 }
@@ -602,29 +782,29 @@ code {
 
 /* Words appearing as they are spoken, before the answer is judged. */
 .read-along-view .ra-fill-live {
-    background: #fff3cd;
-    border-bottom-color: #ffc107;
-    color: #664d03;
+    background: var(--warn-fill);
+    border-bottom-color: var(--c-warn);
+    color: var(--warn-ink);
     font-style: italic;
-    min-height: 1.35em;
+    min-height: var(--ra-blank-height);
     min-width: calc(var(--pv-chars) * var(--pv-ch-width));
 }
 
 .read-along-view .ra-fill-correct {
-    background: #d1e7dd;
-    border-bottom-color: #198754;
-    color: #0f5132;
+    background: var(--ok-fill);
+    border-bottom-color: var(--ok-rule);
+    color: var(--ok-ink);
 }
 
 .read-along-view .ra-fill-missed {
-    background: #f8d7da;
-    border-bottom-color: #dc3545;
-    color: #842029;
+    background: var(--bad-fill);
+    border-bottom-color: var(--bad-rule);
+    color: var(--bad-ink);
 }
 
 /* The run being read aloud, so the eye can follow the voice. */
 .read-along-view .ra-speaking .pv-visible-static {
-    background: #cfe2ff;
+    background: var(--ra-speaking-fill);
     border-radius: 0.2rem;
 }
 
@@ -635,15 +815,15 @@ code {
 */
 .read-along-view .ra-awaiting .ra-blank,
 .read-along-view .ra-fill-live {
-    background: #ffe69c;
-    border-bottom: 3px solid #fd7e14;
-    box-shadow: 0 0 0 4px rgba(253, 126, 20, 0.3);
-    animation: ra-pulse 1.4s ease-in-out infinite;
+    background: var(--ra-live-fill);
+    border-bottom: 3px solid var(--ra-live-rule);
+    box-shadow: 0 0 0 4px rgba(var(--ra-halo-rgb), 0.3);
+    animation: ra-pulse var(--ra-pulse-duration) ease-in-out infinite;
 }
 
 @keyframes ra-pulse {
-    0%, 100% { box-shadow: 0 0 0 4px rgba(253, 126, 20, 0.3); }
-    50% { box-shadow: 0 0 0 7px rgba(253, 126, 20, 0.12); }
+    0%, 100% { box-shadow: 0 0 0 4px rgba(var(--ra-halo-rgb), 0.3); }
+    50% { box-shadow: 0 0 0 7px rgba(var(--ra-halo-rgb), 0.12); }
 }
 
 /* A blinking cursor in the live blank, so an empty one still reads as "your turn". */
@@ -652,7 +832,7 @@ code {
     width: 2px;
     height: 1.1em;
     vertical-align: text-bottom;
-    background: #fd7e14;
+    background: var(--ra-caret);
     animation: ra-blink 1s step-end infinite;
 }
 
@@ -682,8 +862,8 @@ code {
     margin-bottom: 0.25rem;
 }
 
-.read-along-log .ra-correct { background: #d1e7dd; }
+.read-along-log .ra-correct { background: var(--ok-fill); }
 
-.read-along-log .ra-missed { background: #f8d7da; }
+.read-along-log .ra-missed { background: var(--bad-fill); }
 
 .read-along-done { font-weight: 600; }
