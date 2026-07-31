@@ -335,23 +335,23 @@ public sealed class PracticeTests(AppFixture fixture, ITestOutputHelper output)
     }
 
     /// <summary>
-    /// The point of the technique: the initial is the cue you recall from, so a test
-    /// that hides it is not testing first letter at all.
+    /// The point of the technique: the initial is the cue you recall from, and it
+    /// belongs inside the field so that what you see is your whole answer.
     /// </summary>
     [Fact]
-    public async Task Testing_first_letter_keeps_the_initial_visible_beside_each_input()
+    public async Task Testing_first_letter_starts_each_field_with_its_initial()
     {
         await OpenPracticeAsync();
         await Page.GetByTestId("technique-first-letter").ClickAsync();
         await Page.GetByTestId("mode-test").ClickAsync();
 
         await Assertions.Expect(Page.GetByTestId("blank-input")).ToHaveCountAsync(25);
-        await Assertions.Expect(Page.GetByTestId("blank-cue")).ToHaveCountAsync(25);
-        await Assertions.Expect(Page.GetByTestId("blank-cue").First).ToHaveTextAsync("F");
+        await Assertions.Expect(Page.GetByTestId("blank-input").First).ToHaveValueAsync("F");
+        await Assertions.Expect(Page.GetByTestId("blank-input").Nth(1)).ToHaveValueAsync("G");
     }
 
     [Fact]
-    public async Task A_dropped_initial_leaves_its_input_without_a_cue()
+    public async Task A_dropped_initial_leaves_its_field_empty()
     {
         await OpenPracticeAsync();
         await Page.GetByTestId("technique-first-letter").ClickAsync();
@@ -360,7 +360,71 @@ public sealed class PracticeTests(AppFixture fixture, ITestOutputHelper output)
 
         // Still tested, just with nothing to go on.
         await Assertions.Expect(Page.GetByTestId("blank-input")).ToHaveCountAsync(25);
-        await Assertions.Expect(Page.GetByTestId("blank-cue")).ToHaveCountAsync(24);
+        await Assertions.Expect(Page.GetByTestId("blank-input").First).ToHaveValueAsync("");
+    }
+
+    /// <summary>
+    /// The reported bug. With the initial outside the box the natural move was to
+    /// type only the rest of the word, which scoring then marked wrong. Completing
+    /// the word in the field has to count.
+    /// </summary>
+    [Fact]
+    public async Task Completing_a_seeded_word_scores_it_correct()
+    {
+        await OpenPracticeAsync();
+        await Page.GetByTestId("technique-first-letter").ClickAsync();
+        await Page.GetByTestId("mode-test").ClickAsync();
+
+        var expected = ("For God so loved the world that he gave his only begotten Son that "
+            + "whosoever believeth in him should not perish but have everlasting life").Split(' ');
+
+        for (var i = 0; i < expected.Length; i++)
+        {
+            // Type the remainder onto the seeded initial, the way the field invites.
+            await Page.GetByTestId("blank-input").Nth(i).ClickAsync();
+            await Page.Keyboard.PressAsync("End");
+            await Page.Keyboard.TypeAsync(expected[i][1..]);
+        }
+
+        await Page.GetByTestId("check-answers").ClickAsync();
+
+        await Assertions.Expect(Page.GetByTestId("results-accuracy")).ToHaveTextAsync("100%");
+    }
+
+    [Fact]
+    public async Task A_field_left_at_its_initial_is_marked_missed_not_wrong()
+    {
+        await OpenPracticeAsync();
+        await Page.GetByTestId("technique-first-letter").ClickAsync();
+        await Page.GetByTestId("mode-test").ClickAsync();
+
+        // Answer nothing at all, then submit.
+        await Page.GetByTestId("check-answers").ClickAsync();
+
+        await Assertions.Expect(Page.GetByTestId("results-accuracy")).ToHaveTextAsync("0%");
+        // Missed, not "you said the wrong word".
+        await Assertions.Expect(Page.GetByTestId("results-panel")).ToContainTextAsync("0 of 25");
+    }
+
+    /// <summary>
+    /// A blank and a hint sit on the same line, so they have to be the same size.
+    /// They previously were not: the hint took its height from the line box while the
+    /// blank had a fixed height, leaving their underlines at different levels.
+    /// </summary>
+    [Fact]
+    public async Task A_dropped_word_and_an_initial_are_the_same_height()
+    {
+        await OpenPracticeAsync();
+        await Page.GetByTestId("technique-first-letter").ClickAsync();
+        await Page.GetByTestId("hint").First.ClickAsync();
+
+        var blank = await Page.GetByTestId("blank").First.BoundingBoxAsync();
+        var hint = await Page.GetByTestId("hint").First.BoundingBoxAsync();
+
+        Assert.True(Math.Abs(blank!.Height - hint!.Height) < 1.0,
+            $"Blank height {blank.Height} should match hint height {hint.Height}.");
+        Assert.True(Math.Abs((blank.Y + blank.Height) - (hint.Y + hint.Height)) < 1.0,
+            $"Underlines should sit level: blank bottom {blank.Y + blank.Height}, hint bottom {hint.Y + hint.Height}.");
     }
 
     [Fact]

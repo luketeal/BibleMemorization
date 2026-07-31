@@ -405,15 +405,31 @@ code {
 }
 
 /* A blank keeps the width of the word it hides, so its length still cues recall. */
-.pv-blank {
+/*
+   One box for every inline slot — an empty blank, a one-letter hint, an input.
+   Height and alignment are pinned here rather than left to the content, because
+   otherwise a hint takes its height from the line box while an empty blank does not,
+   and the two end up different sizes with their underlines at different heights.
+   The explicit line-height also gives an empty blank a real baseline, which an empty
+   inline-block otherwise lacks.
+*/
+.pv-slot,
+.pv-blank,
+.pv-hint,
+.pv-input {
     display: inline-block;
-    height: 1.35em;
-    vertical-align: baseline;
+    box-sizing: border-box;
+    height: 1.7em;
+    line-height: 1.7em;
+    padding: 0 0.2em;
+    vertical-align: middle;
     border: none;
     border-bottom: 2px solid #0d6efd;
-    background: #eef4ff;
     border-radius: 0.15rem 0.15rem 0 0;
-    padding: 0;
+    background: #eef4ff;
+}
+
+.pv-blank {
     cursor: default;
 }
 
@@ -427,15 +443,8 @@ code {
    missing — the length cue is a real part of what makes initials recallable.
 */
 .pv-hint {
-    display: inline-block;
-    /* It is a button so the initial can be tapped away, but it should read as text:
-       reset the browser's button chrome and keep only the underline. */
+    /* A button so the initial can be tapped away, but it should read as text. */
     font: inherit;
-    border: none;
-    border-bottom: 2px solid #0d6efd;
-    background: #eef4ff;
-    padding: 0 0.2em;
-    border-radius: 0.15rem 0.15rem 0 0;
     color: #0a58ca;
     font-weight: 600;
     text-align: left;
@@ -461,14 +470,9 @@ code {
 }
 
 .pv-input {
-    display: inline-block;
     font: inherit;
-    font-size: 0.95em;
-    padding: 0 0.2em;
-    border: none;
-    border-bottom: 2px solid #0d6efd;
     background: #f8fbff;
-    text-align: center;
+    text-align: left;
 }
 
 .pv-input:focus {

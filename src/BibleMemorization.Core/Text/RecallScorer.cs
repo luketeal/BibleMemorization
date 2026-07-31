@@ -98,10 +98,16 @@ public static class RecallScorer
     /// Running alignment over it actively misleads — a wrong answer can pair with a
     /// later blank and get reported against a word the user never typed into.
     /// </summary>
+    /// <param name="prefilled">
+    /// What each field started with, when a technique seeds them — first-letter puts
+    /// the initial in the box. A field left at its seed was not answered, and saying
+    /// "wrong word" about a word the user never typed would misreport it.
+    /// </param>
     public static RecallResult ScoreBlanks(
         TokenizedPassage passage,
         IReadOnlyList<int> expectedTokenIndices,
-        IReadOnlyDictionary<int, string> answers)
+        IReadOnlyDictionary<int, string> answers,
+        IReadOnlyDictionary<int, string>? prefilled = null)
     {
         var results = new List<TokenRecall>();
 
@@ -117,11 +123,25 @@ public static class RecallScorer
                 continue;
             }
 
-            var outcome = TextNormalizer.WordsMatch(expected, answer)
-                ? RecallOutcome.Correct
-                : RecallOutcome.Wrong;
+            // Matching is checked before "untouched" on purpose. For a one-letter word
+            // the seed already is the whole answer, so leaving it alone is correct
+            // rather than unanswered.
+            if (TextNormalizer.WordsMatch(expected, answer))
+            {
+                results.Add(new TokenRecall(index, expected, answer.Trim(), RecallOutcome.Correct));
+                continue;
+            }
 
-            results.Add(new TokenRecall(index, expected, answer.Trim(), outcome));
+            if (prefilled is not null
+                && prefilled.TryGetValue(index, out var seed)
+                && seed.Length > 0
+                && string.Equals(answer.Trim(), seed, StringComparison.Ordinal))
+            {
+                results.Add(new TokenRecall(index, expected, null, RecallOutcome.Missing));
+                continue;
+            }
+
+            results.Add(new TokenRecall(index, expected, answer.Trim(), RecallOutcome.Wrong));
         }
 
         return new RecallResult(results, []);

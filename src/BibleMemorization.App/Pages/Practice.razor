@@ -124,11 +124,6 @@ else
                     {
                         <span class="pv-word">
                             <span class="pv-punct">@token.Prefix</span>
-                            @if (token.Text.Length > 0)
-                            {
-                                <span class="pv-cue" data-testid="blank-cue"
-                                      data-token-index="@token.TokenIndex">@token.Text</span>
-                            }
                             <input class="pv-input @AnswerClass(token.TokenIndex)"
                                    style="@InputWidth(token)"
                                    value="@GetAnswer(token.TokenIndex)"
@@ -243,6 +238,7 @@ else
     private TestInput _input = TestInput.Blanks;
 
     private readonly Dictionary<int, string> _answers = [];
+    private readonly Dictionary<int, string> _prefilled = [];
     private readonly Dictionary<int, bool> _checked = [];
     private string _recitation = string.Empty;
 
@@ -337,8 +333,7 @@ else
 
         if (mode == PracticeMode.Test)
         {
-            _answers.Clear();
-            _checked.Clear();
+            SeedAnswers();
             _recitation = string.Empty;
             _startedAt = Clock.UtcNow;
 
@@ -407,6 +402,25 @@ else
 
     // ---- Test mode ----
 
+    /// <summary>
+    /// Starts each field with whatever the technique is showing for that word — the
+    /// initial under first letter, nothing under vanishing text. Putting the cue in
+    /// the box rather than beside it means what you see is your whole answer, which
+    /// is also what gets scored.
+    /// </summary>
+    private void SeedAnswers()
+    {
+        _answers.Clear();
+        _prefilled.Clear();
+        _checked.Clear();
+
+        foreach (var token in _display.Where(t => t.IsWord && t.IsBlank && t.Text.Length > 0))
+        {
+            _answers[token.TokenIndex] = token.Text;
+            _prefilled[token.TokenIndex] = token.Text;
+        }
+    }
+
     private string GetAnswer(int tokenIndex) => _answers.GetValueOrDefault(tokenIndex, string.Empty);
 
     private void SetAnswer(int tokenIndex, string? value)
@@ -417,7 +431,18 @@ else
 
     private void CheckOne(int tokenIndex)
     {
-        if (string.IsNullOrWhiteSpace(GetAnswer(tokenIndex)))
+        var answer = GetAnswer(tokenIndex);
+
+        if (string.IsNullOrWhiteSpace(answer))
+        {
+            _checked.Remove(tokenIndex);
+            return;
+        }
+
+        // Still just the seeded initial: not answered yet, so not wrong yet either.
+        if (_prefilled.TryGetValue(tokenIndex, out var seed)
+            && answer.Trim() == seed
+            && !RecallScorer.ScoreSingleWord(_tokens, tokenIndex, answer))
         {
             _checked.Remove(tokenIndex);
             return;
@@ -461,7 +486,7 @@ else
         // one of the two can have words shift out of position.
         var result = _input == TestInput.Recite
             ? RecallScorer.Score(_tokens, _tokens.WordIndices, _recitation)
-            : RecallScorer.ScoreBlanks(_tokens, tested, _answers);
+            : RecallScorer.ScoreBlanks(_tokens, tested, _answers, _prefilled);
 
         await RecordAsync(result, InputMode.Typed);
     }
@@ -503,5 +528,11 @@ else
         _outcomes = null;
         _resultDisplay = [];
         _startedAt = Clock.UtcNow;
+
+        // Trying again starts from the cues, not from the last attempt's answers.
+        if (_mode == PracticeMode.Test)
+        {
+            SeedAnswers();
+        }
     }
 }

@@ -223,4 +223,86 @@ public class RecallScorerTests
 
         Assert.Equal([1, 5], result.Tokens.Select(t => t.TokenIndex));
     }
+
+    // ---- Fields a technique pre-fills, e.g. first letter's initial ----
+
+    /// <summary>
+    /// The bug this guards. First letter seeds each field with the initial, so a
+    /// field still holding just "G" was never answered. Calling that a wrong word
+    /// would blame the user for a word they never typed.
+    /// </summary>
+    [Fact]
+    public void A_field_left_at_its_seed_counts_as_unanswered()
+    {
+        var passage = Passage();
+
+        var result = RecallScorer.ScoreBlanks(
+            passage,
+            [1],
+            new Dictionary<int, string> { [1] = "G" },
+            new Dictionary<int, string> { [1] = "G" });
+
+        var token = result.Tokens.Single();
+        Assert.Equal(RecallOutcome.Missing, token.Outcome);
+        Assert.Null(token.Attempted);
+    }
+
+    [Fact]
+    public void Completing_a_seeded_field_into_the_whole_word_is_correct()
+    {
+        var passage = Passage();
+
+        var result = RecallScorer.ScoreBlanks(
+            passage,
+            [1],
+            new Dictionary<int, string> { [1] = "God" },
+            new Dictionary<int, string> { [1] = "G" });
+
+        Assert.True(result.IsPerfect);
+    }
+
+    /// <summary>
+    /// For a one-letter word the seed already is the answer, so touching nothing is
+    /// right. This is why matching is checked before "still the seed".
+    /// </summary>
+    [Fact]
+    public void A_one_letter_word_left_at_its_seed_is_correct()
+    {
+        var passage = Passage("I am he");
+
+        var result = RecallScorer.ScoreBlanks(
+            passage,
+            [0],
+            new Dictionary<int, string> { [0] = "I" },
+            new Dictionary<int, string> { [0] = "I" });
+
+        Assert.Equal(RecallOutcome.Correct, result.Tokens.Single().Outcome);
+    }
+
+    [Fact]
+    public void Replacing_a_seed_with_the_wrong_word_is_still_wrong()
+    {
+        var passage = Passage();
+
+        var result = RecallScorer.ScoreBlanks(
+            passage,
+            [1],
+            new Dictionary<int, string> { [1] = "Good" },
+            new Dictionary<int, string> { [1] = "G" });
+
+        var token = result.Tokens.Single();
+        Assert.Equal(RecallOutcome.Wrong, token.Outcome);
+        Assert.Equal("Good", token.Attempted);
+    }
+
+    [Fact]
+    public void Without_seeds_a_lone_letter_is_judged_on_its_merits()
+    {
+        var passage = Passage();
+
+        // Vanishing text seeds nothing, so "G" here is simply a wrong answer.
+        var result = RecallScorer.ScoreBlanks(passage, [1], new Dictionary<int, string> { [1] = "G" });
+
+        Assert.Equal(RecallOutcome.Wrong, result.Tokens.Single().Outcome);
+    }
 }

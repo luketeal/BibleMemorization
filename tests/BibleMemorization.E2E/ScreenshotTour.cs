@@ -86,7 +86,12 @@ public sealed class ScreenshotTour(AppFixture fixture, ITestOutputHelper output)
         await ShotAsync("15-first-letter-some-dropped");
 
         await Page.GetByTestId("mode-test").ClickAsync();
-        await Page.GetByTestId("blank-cue").First.WaitForAsync();
+        await Page.GetByTestId("blank-input").First.WaitForAsync();
+
+        // Two words completed, so the shot shows the initial and a typed-out answer
+        // sharing one field.
+        await Page.GetByTestId("blank-input").Nth(0).FillAsync("For");
+        await Page.GetByTestId("blank-input").Nth(1).FillAsync("God");
         await ShotAsync("16-first-letter-test");
     }
 
