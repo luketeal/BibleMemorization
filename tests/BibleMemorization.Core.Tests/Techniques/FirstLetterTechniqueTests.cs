@@ -43,15 +43,67 @@ public class FirstLetterTechniqueTests
         Assert.Equal(",", god.Suffix);
     }
 
+    /// <summary>
+    /// The gentlest stage, and the shape the technique had before stages existed —
+    /// so progress saved against the old behaviour still renders identically.
+    /// </summary>
     [Fact]
-    public void Hidden_state_is_ignored_because_the_technique_hides_everything()
+    public void An_empty_selection_shows_every_initial()
     {
         var passage = Tokenizer.Tokenize("For God so loved");
 
-        var withState = _technique.Render(passage, new TechniqueState([1]));
-        var withoutState = _technique.Render(passage, new TechniqueState());
+        var rendered = _technique.Render(passage, new TechniqueState());
 
-        Assert.Equal(withoutState, withState);
+        Assert.All(rendered.Where(t => t.IsWord), t => Assert.Single(t.Text));
+        Assert.DoesNotContain(rendered, t => t.IsWord && t.Text.Length == 0);
+    }
+
+    [Fact]
+    public void A_dropped_word_loses_its_initial_too()
+    {
+        var passage = Tokenizer.Tokenize("For God so loved");
+
+        var rendered = _technique.Render(passage, new TechniqueState([1]));
+
+        var dropped = rendered.Single(t => t.TokenIndex == 1);
+        Assert.True(dropped.IsBlank);
+        Assert.Equal(string.Empty, dropped.Text);
+
+        // The others keep theirs: the ladder is per word, not all-or-nothing.
+        Assert.Equal("s", rendered.Single(t => t.TokenIndex == 2).Text);
+    }
+
+    [Fact]
+    public void A_dropped_word_still_carries_the_full_words_width()
+    {
+        var passage = Tokenizer.Tokenize("For God so loved");
+
+        var rendered = _technique.Render(passage, new TechniqueState([3]));
+
+        Assert.Equal("loved".Length, rendered.Single(t => t.TokenIndex == 3).BlankWidth);
+    }
+
+    [Fact]
+    public void Dropping_every_initial_leaves_nothing_showing()
+    {
+        var passage = Tokenizer.Tokenize("For God so loved");
+
+        var rendered = _technique.Render(passage, new TechniqueState(passage.WordIndices));
+
+        Assert.All(rendered.Where(t => t.IsWord), t => Assert.Equal(string.Empty, t.Text));
+    }
+
+    [Fact]
+    public void Read_along_is_not_offered_because_no_word_is_ever_fully_shown()
+    {
+        Assert.False(_technique.SupportsReadAlong);
+    }
+
+    [Fact]
+    public void The_technique_names_its_own_controls()
+    {
+        Assert.Contains("initial", _technique.Vocabulary.HideAll, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("initial", _technique.Vocabulary.RevealAll, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -65,8 +117,9 @@ public class FirstLetterTechniqueTests
     }
 
     [Fact]
-    public void The_technique_does_not_support_manual_selection()
+    public void The_technique_supports_manual_selection()
     {
-        Assert.False(_technique.SupportsManualWordSelection);
+        // Tapping an initial drops it, which is how the stages are driven.
+        Assert.True(_technique.SupportsManualWordSelection);
     }
 }

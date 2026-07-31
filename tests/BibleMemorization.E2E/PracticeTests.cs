@@ -232,8 +232,8 @@ public sealed class PracticeTests(AppFixture fixture, ITestOutputHelper output)
 
         await Assertions.Expect(Page.GetByTestId("hint").First).ToHaveTextAsync("F");
         await Assertions.Expect(Page.GetByTestId("hint")).ToHaveCountAsync(25);
-        // It hides everything itself, so per-word controls have nothing to do.
-        await Assertions.Expect(Page.GetByTestId("hide-all")).ToHaveCountAsync(0);
+        // Nothing is dropped yet, so this is the technique at its gentlest.
+        await Assertions.Expect(Page.GetByTestId("blank")).ToHaveCountAsync(0);
     }
 
     /// <summary>
@@ -291,5 +291,129 @@ public sealed class PracticeTests(AppFixture fixture, ITestOutputHelper output)
         await page.GetByTestId("check-answers").ClickAsync();
 
         await Assertions.Expect(page.GetByTestId("results-accuracy")).ToHaveTextAsync("100%");
+    }
+
+    // ---- First letter as a technique you can practise, not just look at ----
+
+    [Fact]
+    public async Task First_letter_offers_study_controls_in_its_own_words()
+    {
+        await OpenPracticeAsync();
+        await Page.GetByTestId("technique-first-letter").ClickAsync();
+
+        await Assertions.Expect(Page.GetByTestId("hide-all")).ToContainTextAsync("initials");
+        await Assertions.Expect(Page.GetByTestId("reveal-all")).ToContainTextAsync("initials");
+    }
+
+    [Fact]
+    public async Task Tapping_an_initial_drops_it_and_tapping_the_blank_restores_it()
+    {
+        await OpenPracticeAsync();
+        await Page.GetByTestId("technique-first-letter").ClickAsync();
+        await Assertions.Expect(Page.GetByTestId("hint")).ToHaveCountAsync(25);
+
+        await Page.GetByTestId("hint").First.ClickAsync();
+
+        await Assertions.Expect(Page.GetByTestId("hint")).ToHaveCountAsync(24);
+        await Assertions.Expect(Page.GetByTestId("blank")).ToHaveCountAsync(1);
+
+        await Page.GetByTestId("blank").ClickAsync();
+
+        await Assertions.Expect(Page.GetByTestId("hint")).ToHaveCountAsync(25);
+    }
+
+    [Fact]
+    public async Task Dropping_every_initial_leaves_only_blanks()
+    {
+        await OpenPracticeAsync();
+        await Page.GetByTestId("technique-first-letter").ClickAsync();
+
+        await Page.GetByTestId("hide-all").ClickAsync();
+
+        await Assertions.Expect(Page.GetByTestId("hint")).ToHaveCountAsync(0);
+        await Assertions.Expect(Page.GetByTestId("blank")).ToHaveCountAsync(25);
+    }
+
+    /// <summary>
+    /// The point of the technique: the initial is the cue you recall from, so a test
+    /// that hides it is not testing first letter at all.
+    /// </summary>
+    [Fact]
+    public async Task Testing_first_letter_keeps_the_initial_visible_beside_each_input()
+    {
+        await OpenPracticeAsync();
+        await Page.GetByTestId("technique-first-letter").ClickAsync();
+        await Page.GetByTestId("mode-test").ClickAsync();
+
+        await Assertions.Expect(Page.GetByTestId("blank-input")).ToHaveCountAsync(25);
+        await Assertions.Expect(Page.GetByTestId("blank-cue")).ToHaveCountAsync(25);
+        await Assertions.Expect(Page.GetByTestId("blank-cue").First).ToHaveTextAsync("F");
+    }
+
+    [Fact]
+    public async Task A_dropped_initial_leaves_its_input_without_a_cue()
+    {
+        await OpenPracticeAsync();
+        await Page.GetByTestId("technique-first-letter").ClickAsync();
+        await Page.GetByTestId("hint").First.ClickAsync();
+        await Page.GetByTestId("mode-test").ClickAsync();
+
+        // Still tested, just with nothing to go on.
+        await Assertions.Expect(Page.GetByTestId("blank-input")).ToHaveCountAsync(25);
+        await Assertions.Expect(Page.GetByTestId("blank-cue")).ToHaveCountAsync(24);
+    }
+
+    [Fact]
+    public async Task Filling_in_the_words_under_first_letter_scores_them()
+    {
+        await OpenPracticeAsync();
+        await Page.GetByTestId("technique-first-letter").ClickAsync();
+        await Page.GetByTestId("mode-test").ClickAsync();
+
+        var words = "For God so loved the world that he gave his only begotten Son that whosoever "
+            + "believeth in him should not perish but have everlasting life";
+        var expected = words.Split(' ');
+
+        for (var i = 0; i < expected.Length; i++)
+        {
+            await Page.GetByTestId("blank-input").Nth(i).FillAsync(expected[i]);
+        }
+
+        await Page.GetByTestId("check-answers").ClickAsync();
+
+        await Assertions.Expect(Page.GetByTestId("results-accuracy")).ToHaveTextAsync("100%");
+    }
+
+    /// <summary>
+    /// Read-along means "the app reads what is still showing". First letter never
+    /// shows a word in full, so offering it would be offering something broken.
+    /// </summary>
+    [Fact]
+    public async Task Read_along_is_offered_for_vanishing_text_but_not_for_first_letter()
+    {
+        await OpenPracticeAsync();
+        await Page.GetByTestId("mode-test").ClickAsync();
+        await Assertions.Expect(Page.GetByTestId("input-read-along")).ToHaveCountAsync(1);
+
+        await Page.GetByTestId("technique-first-letter").ClickAsync();
+        await Page.GetByTestId("mode-test").ClickAsync();
+
+        await Assertions.Expect(Page.GetByTestId("input-read-along")).ToHaveCountAsync(0);
+    }
+
+    [Fact]
+    public async Task Switching_to_first_letter_while_reading_along_lands_somewhere_usable()
+    {
+        await OpenPracticeAsync();
+        await Page.GetByTestId("mode-test").ClickAsync();
+        await Page.GetByTestId("input-read-along").ClickAsync();
+        await Assertions.Expect(Page.GetByTestId("read-along")).ToBeVisibleAsync();
+
+        await Page.GetByTestId("technique-first-letter").ClickAsync();
+        await Page.GetByTestId("mode-test").ClickAsync();
+
+        // Not stranded on a panel the new technique does not offer.
+        await Assertions.Expect(Page.GetByTestId("read-along")).ToHaveCountAsync(0);
+        await Assertions.Expect(Page.GetByTestId("blank-input").First).ToBeVisibleAsync();
     }
 }

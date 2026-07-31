@@ -23,6 +23,18 @@ public interface IMemoryTechnique
     /// </summary>
     bool SupportsManualWordSelection { get; }
 
+    /// <summary>
+    /// True when guided read-along makes sense.
+    ///
+    /// Read-along is defined as "the app reads the words still showing and pauses at
+    /// the rest". A technique that never shows a word in full gives it nothing to
+    /// read, so offering it would be offering something that cannot work.
+    /// </summary>
+    bool SupportsReadAlong { get; }
+
+    /// <summary>Wording for the study controls, since techniques take words away differently.</summary>
+    TechniqueVocabulary Vocabulary { get; }
+
     /// <summary>Produces the view of the passage the user should study or be tested on.</summary>
     IReadOnlyList<DisplayToken> Render(TokenizedPassage passage, TechniqueState state);
 

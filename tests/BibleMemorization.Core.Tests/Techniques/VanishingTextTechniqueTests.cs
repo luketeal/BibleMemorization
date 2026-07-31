@@ -80,4 +80,10 @@ public class VanishingTextTechniqueTests
     {
         Assert.True(_technique.SupportsManualWordSelection);
     }
+
+    [Fact]
+    public void Read_along_is_offered_because_the_unhidden_words_can_be_read()
+    {
+        Assert.True(_technique.SupportsReadAlong);
+    }
 }

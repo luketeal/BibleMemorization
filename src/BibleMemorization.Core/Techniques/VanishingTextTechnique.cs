@@ -19,6 +19,15 @@ public sealed class VanishingTextTechnique : IMemoryTechnique
 
     public bool SupportsManualWordSelection => true;
 
+    public bool SupportsReadAlong => true;
+
+    public TechniqueVocabulary Vocabulary { get; } = new(
+        HideMore: "Hide 10% more",
+        HideOne: "Hide one",
+        HideAll: "Hide all",
+        RevealAll: "Reveal all",
+        StudyHint: "Tap any word to make it vanish. Tap a blank to bring it back.");
+
     public IReadOnlyList<DisplayToken> Render(TokenizedPassage passage, TechniqueState state)
     {
         var tokens = new List<DisplayToken>(passage.Count);

@@ -56,13 +56,13 @@ else
             @if (_technique.SupportsManualWordSelection)
             {
                 <button class="btn btn-outline-primary btn-sm" @onclick="() => HideMoreAsync(0.1)"
-                        data-testid="hide-more">Hide 10% more</button>
+                        data-testid="hide-more">@_technique.Vocabulary.HideMore</button>
                 <button class="btn btn-outline-primary btn-sm" @onclick="() => HideCountAsync(1)"
-                        data-testid="hide-one">Hide one</button>
+                        data-testid="hide-one">@_technique.Vocabulary.HideOne</button>
                 <button class="btn btn-outline-primary btn-sm" @onclick="HideAllAsync"
-                        data-testid="hide-all">Hide all</button>
+                        data-testid="hide-all">@_technique.Vocabulary.HideAll</button>
                 <button class="btn btn-outline-secondary btn-sm" @onclick="RevealAllAsync"
-                        data-testid="reveal-all">Reveal all</button>
+                        data-testid="reveal-all">@_technique.Vocabulary.RevealAll</button>
             }
 
             <div class="toolbar-spacer"></div>
@@ -76,7 +76,7 @@ else
 
         @if (_technique.SupportsManualWordSelection)
         {
-            <p class="field-hint">Tap any word to make it vanish. Tap a blank to bring it back.</p>
+            <p class="field-hint">@_technique.Vocabulary.StudyHint</p>
         }
 
         <PassageView Tokens="_display" Interactive="_technique.SupportsManualWordSelection"
@@ -91,8 +91,11 @@ else
                     data-testid="input-recite">Write it out</button>
             <button type="button" class="@InputClass(TestInput.Speak)" @onclick="() => SetInput(TestInput.Speak)"
                     data-testid="input-speak">Say it</button>
-            <button type="button" class="@InputClass(TestInput.ReadAlong)" @onclick="() => SetInput(TestInput.ReadAlong)"
-                    data-testid="input-read-along">Read along</button>
+            @if (_technique.SupportsReadAlong)
+            {
+                <button type="button" class="@InputClass(TestInput.ReadAlong)" @onclick="() => SetInput(TestInput.ReadAlong)"
+                        data-testid="input-read-along">Read along</button>
+            }
         </div>
 
         @* Only filling blanks needs blanks. Writing the passage out or reciting it
@@ -121,6 +124,11 @@ else
                     {
                         <span class="pv-word">
                             <span class="pv-punct">@token.Prefix</span>
+                            @if (token.Text.Length > 0)
+                            {
+                                <span class="pv-cue" data-testid="blank-cue"
+                                      data-token-index="@token.TokenIndex">@token.Text</span>
+                            }
                             <input class="pv-input @AnswerClass(token.TokenIndex)"
                                    style="@InputWidth(token)"
                                    value="@GetAnswer(token.TokenIndex)"
@@ -148,7 +156,7 @@ else
         {
             <SpokenRecall Expected="_tokens" TestedIndices="TestedIndices" OnResult="ApplySpokenResult" />
         }
-        else
+        else if (_technique.SupportsReadAlong)
         {
             <ReadAlongPanel Passage="_tokens" Hidden="_state.HiddenTokenIndices" Settings="Store.Settings" />
         }
@@ -308,6 +316,12 @@ else
         _technique = technique;
         ClearResult();
 
+        if (_input == TestInput.ReadAlong && !technique.SupportsReadAlong)
+        {
+            _input = TestInput.Blanks;
+        }
+
+
         // Progress is stored per technique, so switching restores whatever was
         // hidden under this one rather than carrying the other's state across.
         LoadProgress();
@@ -328,11 +342,10 @@ else
             _recitation = string.Empty;
             _startedAt = Clock.UtcNow;
 
-            // Filling blanks needs blanks; first-letter mode hides everything at once
-            // and reads better as a written or spoken recall.
-            if (!_technique.SupportsManualWordSelection)
+            // Read-along may not exist for this technique; land somewhere that does.
+            if (_input == TestInput.ReadAlong && !_technique.SupportsReadAlong)
             {
-                _input = TestInput.Recite;
+                _input = TestInput.Blanks;
             }
         }
 

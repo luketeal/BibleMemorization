@@ -428,6 +428,10 @@ code {
 */
 .pv-hint {
     display: inline-block;
+    /* It is a button so the initial can be tapped away, but it should read as text:
+       reset the browser's button chrome and keep only the underline. */
+    font: inherit;
+    border: none;
     border-bottom: 2px solid #0d6efd;
     background: #eef4ff;
     padding: 0 0.2em;
@@ -435,6 +439,25 @@ code {
     color: #0a58ca;
     font-weight: 600;
     text-align: left;
+    cursor: default;
+}
+
+.interactive .pv-hint { cursor: pointer; }
+
+.interactive .pv-hint:hover {
+    background: #cfe2ff;
+    outline: 2px solid #9ec5fe;
+}
+
+/*
+   The initial shown beside its input under first letter. Styled as a prompt rather
+   than as text the user typed, so it never reads as part of their answer.
+*/
+.pv-cue {
+    display: inline-block;
+    font-weight: 700;
+    color: #0a58ca;
+    margin-right: 0.1em;
 }
 
 .pv-input {

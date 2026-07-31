@@ -36,9 +36,13 @@
                     @* An abbreviated form, e.g. first-letter mode. It is widened to
                        the whole word so the initial sits at the start of a blank the
                        length of what it stands for — the word's shape is half of what
-                       makes initials recallable. *@
-                    <span class="pv-hint" style="@HintStyle(token)"
-                          data-testid="hint" data-token-index="@token.TokenIndex">@token.Text</span>
+                       makes initials recallable. Tappable like a full word, since
+                       dropping the initial is the next rung down. *@
+                    <button type="button" class="pv-hint" style="@HintStyle(token)"
+                            disabled="@(!Interactive)"
+                            title="@(Interactive ? "Drop this initial" : null)"
+                            data-testid="hint" data-token-index="@token.TokenIndex"
+                            @onclick="() => Toggle(token.TokenIndex)">@token.Text</button>
                 }
                 else
                 {

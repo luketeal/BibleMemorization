@@ -79,6 +79,15 @@ public sealed class ScreenshotTour(AppFixture fixture, ITestOutputHelper output)
         await Page.GetByTestId("technique-first-letter").ClickAsync();
         await Page.GetByTestId("hint").First.WaitForAsync();
         await ShotAsync("14-practice-first-letter");
+
+        // A few initials dropped, showing the middle of the ladder.
+        await Page.GetByTestId("hide-more").ClickAsync();
+        await Page.GetByTestId("hide-more").ClickAsync();
+        await ShotAsync("15-first-letter-some-dropped");
+
+        await Page.GetByTestId("mode-test").ClickAsync();
+        await Page.GetByTestId("blank-cue").First.WaitForAsync();
+        await ShotAsync("16-first-letter-test");
     }
 
     [Fact]
