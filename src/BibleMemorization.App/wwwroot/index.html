@@ -6,6 +6,82 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bible Memorization</title>
     <base href="/" />
+    <!--
+        Resolve the theme before the stylesheets are even requested.
+
+        This has to be a classic inline script, and it has to sit here. A module or a
+        deferred script runs after parsing, which is after the first paint — the user
+        would read a page in the wrong theme and watch it change under them. The
+        library is loaded through a JS module import after the whole WebAssembly
+        runtime downloads, so it is far too late to ask; localStorage is synchronous
+        and available right here.
+
+        A theme named in the URL applies for this page only and is never stored, so a
+        screenshot run or a shared link cannot overwrite someone's saved preference.
+    -->
+    <script>
+        (function () {
+            var THEMES = ['blue', 'slate', 'dark'];
+            var KEY = 'biblememorization.theme';
+            var DARK = '(prefers-color-scheme: dark)';
+
+            function stored() {
+                try {
+                    return window.localStorage.getItem(KEY);
+                } catch (e) {
+                    // Private browsing modes throw on access rather than returning null.
+                    return null;
+                }
+            }
+
+            function prefersDark() {
+                try {
+                    return window.matchMedia && window.matchMedia(DARK).matches;
+                } catch (e) {
+                    return false;
+                }
+            }
+
+            function fromUrl() {
+                try {
+                    var value = new URLSearchParams(window.location.search).get('theme');
+                    return THEMES.indexOf(value) >= 0 ? value : null;
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            function resolve() {
+                var choice = fromUrl();
+                if (choice) {
+                    return choice;
+                }
+
+                choice = stored();
+                if (THEMES.indexOf(choice) >= 0) {
+                    return choice;
+                }
+
+                // No explicit choice: follow the operating system.
+                return prefersDark() ? 'dark' : 'blue';
+            }
+
+            function apply(theme) {
+                var isDark = theme === 'dark';
+                var root = document.documentElement;
+                root.setAttribute('data-theme', theme);
+                // Bootstrap 5.3 ships its own dark treatment; this hands form controls,
+                // dropdowns and native scrollbars over to it for free.
+                root.setAttribute('data-bs-theme', isDark ? 'dark' : 'light');
+                // Paints the browser's own canvas before any stylesheet arrives, which
+                // is what removes the white frame at the very start of a dark load.
+                root.style.colorScheme = isDark ? 'dark' : 'light';
+            }
+
+            window.__bmTheme = { THEMES: THEMES, KEY: KEY, resolve: resolve, apply: apply };
+            apply(resolve());
+        })();
+    </script>
     <link rel="preload" id="webassembly" />
     <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="css/app.css" />

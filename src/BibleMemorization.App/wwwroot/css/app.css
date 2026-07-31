@@ -120,6 +120,7 @@
     --radius-slot: 0.15rem;
     --radius-md: 0.5rem;
     --radius-chip: 0.25rem;
+    --shadow-card: none;
     --shadow-card-hover: 0 2px 8px rgba(13, 110, 253, 0.12);
 
     /* Tier 2 — type */
@@ -222,6 +223,280 @@
     --bs-warning: var(--c-warn);
     --bs-focus-ring-color: var(--accent-ring);
     --bs-body-font-family: var(--font-body);
+}
+
+/*
+   Buttons need their own pass. Bootstrap declares --bs-btn-bg and friends inside
+   .btn-primary itself with literal colours, so a :root override never reaches them —
+   the accent has to be handed to each variant where it is declared. Setting its
+   variables rather than its properties keeps Bootstrap's own hover, active and
+   disabled behaviour intact.
+*/
+.btn-primary {
+    --bs-btn-bg: var(--accent);
+    --bs-btn-border-color: var(--accent);
+    --bs-btn-color: var(--ink-on-accent);
+    --bs-btn-hover-bg: var(--accent-ink);
+    --bs-btn-hover-border-color: var(--accent-ink);
+    --bs-btn-hover-color: var(--ink-on-accent);
+    --bs-btn-active-bg: var(--accent-ink);
+    --bs-btn-active-border-color: var(--accent-ink);
+    --bs-btn-active-color: var(--ink-on-accent);
+    --bs-btn-disabled-bg: var(--accent);
+    --bs-btn-disabled-border-color: var(--accent);
+    --bs-btn-disabled-color: var(--ink-on-accent);
+}
+
+.btn-outline-primary {
+    --bs-btn-color: var(--accent-ink);
+    --bs-btn-border-color: var(--accent);
+    --bs-btn-hover-bg: var(--accent);
+    --bs-btn-hover-border-color: var(--accent);
+    --bs-btn-hover-color: var(--ink-on-accent);
+    --bs-btn-active-bg: var(--accent);
+    --bs-btn-active-border-color: var(--accent);
+    --bs-btn-active-color: var(--ink-on-accent);
+    --bs-btn-disabled-color: var(--accent-ink);
+    --bs-btn-disabled-border-color: var(--accent);
+}
+
+.btn-outline-secondary {
+    --bs-btn-color: var(--ink-secondary);
+    --bs-btn-border-color: var(--border-strong);
+    --bs-btn-hover-bg: var(--ink-secondary);
+    --bs-btn-hover-border-color: var(--ink-secondary);
+    --bs-btn-hover-color: var(--surface-raised);
+    --bs-btn-active-bg: var(--ink-secondary);
+    --bs-btn-active-border-color: var(--ink-secondary);
+    --bs-btn-active-color: var(--surface-raised);
+    --bs-btn-disabled-color: var(--ink-muted);
+    --bs-btn-disabled-border-color: var(--border-strong);
+}
+
+.btn-outline-danger {
+    --bs-btn-color: var(--bad-ink-strong);
+    --bs-btn-border-color: var(--bad-rule);
+    --bs-btn-hover-bg: var(--bad-rule);
+    --bs-btn-hover-border-color: var(--bad-rule);
+    --bs-btn-hover-color: var(--ink-on-accent);
+    --bs-btn-active-bg: var(--bad-rule);
+    --bs-btn-active-border-color: var(--bad-rule);
+    --bs-btn-active-color: var(--ink-on-accent);
+    --bs-btn-disabled-color: var(--bad-ink-strong);
+    --bs-btn-disabled-border-color: var(--bad-rule);
+}
+
+/* Alerts, same reason: their fills are declared per variant, not at :root. */
+.alert-warning {
+    --bs-alert-bg: var(--warn-fill);
+    --bs-alert-border-color: var(--warn-rule);
+    --bs-alert-color: var(--warn-ink);
+}
+
+.alert-danger {
+    --bs-alert-bg: var(--bad-fill);
+    --bs-alert-border-color: var(--bad-rule);
+    --bs-alert-color: var(--bad-ink);
+}
+
+.alert-success {
+    --bs-alert-bg: var(--ok-fill);
+    --bs-alert-border-color: var(--ok-rule);
+    --bs-alert-color: var(--ok-ink);
+}
+
+.alert-info {
+    --bs-alert-bg: var(--surface-notice);
+    --bs-alert-border-color: var(--border-accent);
+    --bs-alert-color: var(--accent-ink);
+}
+
+/* Form controls: Bootstrap's own dark treatment does not know about our surfaces. */
+.form-control,
+.form-select {
+    background-color: var(--surface-raised);
+    border-color: var(--border-strong);
+    color: var(--ink-primary);
+}
+
+.form-control:focus,
+.form-select:focus {
+    background-color: var(--surface-raised);
+    border-color: var(--accent);
+    color: var(--ink-primary);
+}
+
+.form-control::placeholder {
+    color: var(--ink-muted);
+}
+
+/*
+   ---- Themes ----
+
+   Each block redefines primitives; the semantic tier above maps them through, so
+   nothing below this point knows which theme is active. The attribute is set by the
+   inline script in index.html before the first paint.
+
+   Selectors are :root[data-theme=…] rather than bare [data-theme=…] so they outrank
+   Bootstrap's own [data-bs-theme=dark] block on specificity rather than on file order.
+*/
+
+/*
+   Blue — the established identity, tidied up. Same accent; the stock template's
+   purple-to-navy sidebar gives way to a flat slate, and the page sits on a faint
+   grey so white cards read as raised rather than as holes.
+*/
+:root[data-theme="blue"] {
+    --c-surface-3: #f1f3f5;
+    --surface-page: #f8f9fa;
+    --surface-nav: #1f2937;
+    --surface-nav-image: none;
+    --surface-nav-header: rgba(0, 0, 0, 0.25);
+    --surface-nav-active: var(--c-accent);
+    --surface-nav-hover: rgba(255, 255, 255, 0.08);
+    --surface-nav-control: rgba(255, 255, 255, 0.12);
+    --ink-on-nav: #cbd5e1;
+    --accent-link: var(--c-accent-deep);
+    --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+/*
+   Slate — cool neutrals and a quieter indigo, with a light sidebar. The chrome
+   recedes so the passage is the only saturated thing on the page.
+*/
+:root[data-theme="slate"] {
+    --c-ink-1: #16191f;
+    --c-ink-2: #2b303a;
+    --c-ink-3: #4a5160;
+    --c-ink-4: #767e8d;
+    --c-surface-1: #ffffff;
+    --c-surface-2: #f7f8fa;
+    --c-surface-3: #eef0f4;
+    --c-line-1: #e3e6eb;
+    --c-line-2: #ccd1da;
+
+    --c-accent: #3b5bdb;
+    --c-accent-deep: #2f49af;
+    --c-accent-link: #2f49af;
+    --c-accent-focus: #748ffc;
+    --c-accent-wash: #fafbff;
+    --c-accent-tint: #edf0fe;
+    --c-accent-soft: #eef1fd;
+    --c-accent-soft-2: #dbe2fb;
+    --c-accent-line: #bac6f7;
+    --c-accent-line-2: #a3b3f4;
+
+    --c-ok: #2f9e68;
+    --c-ok-deep: #1e7a4d;
+    --c-ok-fill: #ddf3e7;
+    --c-ok-ink: #14563a;
+    --c-bad: #d64550;
+    --c-bad-deep: #a92f39;
+    --c-bad-fill: #fbe4e6;
+    --c-bad-ink: #7d222a;
+    --c-warn: #d9a441;
+    --c-warn-fill: #fdf3dd;
+    --c-warn-line: #f2dfb0;
+    --c-warn-outline: #e6c576;
+    --c-warn-ink: #6b5312;
+    --c-live: #e07b39;
+    --c-live-rgb: 224, 123, 57;
+
+    --accent-rgb: 59, 91, 219;
+    --surface-page: #f7f8fa;
+
+    /* A light sidebar: the nav is a quiet index, not a slab of colour. */
+    --surface-nav: #eef0f4;
+    --surface-nav-image: none;
+    --surface-nav-header: rgba(22, 25, 31, 0.05);
+    --surface-nav-active: #dbe2fb;
+    --surface-nav-hover: rgba(22, 25, 31, 0.05);
+    --surface-nav-control: rgba(22, 25, 31, 0.08);
+    --ink-on-nav: #4a5160;
+    --ink-on-nav-active: #2f49af;
+
+    --shadow-card: 0 1px 2px rgba(22, 25, 31, 0.05);
+    --shadow-card-hover: 0 4px 12px rgba(59, 91, 219, 0.1);
+}
+
+/*
+   Dark — for practising at night. The pastel state fills of a light theme turn to
+   muck on a dark surface, so the whole semantic ramp is restated: deep fills with
+   bright ink rather than pale fills with dark ink. The passage also gets a step more
+   size and leading, since low-light reading wants the extra room.
+*/
+:root[data-theme="dark"] {
+    --c-white: #ffffff;
+    --c-ink-1: #e8eaef;
+    --c-ink-2: #d2d6de;
+    --c-ink-3: #a8aebb;
+    --c-ink-4: #858c9a;
+    --c-surface-1: #1b1e25;
+    --c-surface-2: #21242c;
+    --c-surface-3: #191c22;
+    --c-line-1: #2e333d;
+    --c-line-2: #3c424e;
+    --c-track: #2e333d;
+
+    --c-accent: #7aa2f7;
+    --c-accent-deep: #a6c0fa;
+    --c-accent-link: #8fb0f8;
+    --c-accent-focus: #a6c0fa;
+    --c-accent-wash: #1e222b;
+    --c-accent-tint: #1c2433;
+    --c-accent-soft: #222a3a;
+    --c-accent-soft-2: #2c3852;
+    --c-accent-line: #38445e;
+    --c-accent-line-2: #465573;
+
+    --c-ok: #3fa87a;
+    --c-ok-deep: #6fd3a5;
+    --c-ok-fill: #16301f;
+    --c-ok-ink: #7fdcae;
+    --c-ok-outline: #3fa87a;
+    --c-bad: #e5646d;
+    --c-bad-deep: #f38b93;
+    --c-bad-fill: #351a1e;
+    --c-bad-ink: #f5a2a8;
+    --c-bad-solid: #a03038;
+    --c-warn: #d9a441;
+    --c-warn-fill: #302713;
+    --c-warn-line: #4a3a18;
+    --c-warn-outline: #7a5f28;
+    --c-warn-ink: #edcb84;
+    --c-live: #f0913f;
+    --c-live-rgb: 240, 145, 63;
+    --c-code: #e88bb8;
+
+    --accent-rgb: 122, 162, 247;
+    --surface-page: #14161b;
+    --surface-raised: var(--c-surface-1);
+    --surface-sunken: #191c22;
+
+    /* Barely distinct from the page: at night the nav should not glow. */
+    --surface-nav: #101216;
+    --surface-nav-image: none;
+    --surface-nav-header: rgba(0, 0, 0, 0.3);
+    --surface-nav-active: #2c3852;
+    --surface-nav-hover: rgba(255, 255, 255, 0.05);
+    --surface-nav-control: rgba(255, 255, 255, 0.1);
+    --ink-on-nav: #99a1b0;
+    --ink-on-nav-active: #dce4f5;
+    --ink-on-accent: #10131a;
+
+    --pv-surface: #1b1e25;
+    --pv-size: 1.35rem;
+    --pv-leading: 2.5;
+    --pv-slot-bg: #242d3f;
+    --pv-input-bg: #1e222b;
+    --pv-input-bg-focus: #232833;
+    --pv-word-hover-bg: #33405c;
+    --pv-word-hover-ring: #465573;
+    --pv-missing-ink: #edcb84;
+
+    --ra-live-fill: #4a3a18;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-card-hover: 0 4px 14px rgba(0, 0, 0, 0.5);
 }
 
 html, body {
@@ -367,6 +642,7 @@ code {
     border-radius: 0.5rem;
     padding: 1rem 1.25rem;
     background: var(--surface-raised);
+    box-shadow: var(--shadow-card);
     text-decoration: none;
     color: inherit;
     transition: border-color 0.15s, box-shadow 0.15s;
@@ -459,6 +735,7 @@ code {
     border-radius: var(--radius-md);
     padding: 1rem;
     background: var(--surface-raised);
+    box-shadow: var(--shadow-card);
 }
 
 .passage-card-main { min-width: 0; }
@@ -542,6 +819,7 @@ code {
     border-radius: var(--radius-md);
     padding: 1rem;
     background: var(--surface-raised);
+    box-shadow: var(--shadow-card);
 }
 
 .import-panel h2 {
@@ -623,6 +901,7 @@ code {
     border: 1px solid var(--pv-border);
     border-radius: 0.5rem;
     background: var(--pv-surface);
+    box-shadow: var(--shadow-card);
     white-space: pre-wrap;
     max-width: var(--pv-measure);
 }

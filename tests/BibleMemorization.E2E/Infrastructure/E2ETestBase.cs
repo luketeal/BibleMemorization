@@ -58,10 +58,13 @@ public abstract class E2ETestBase : IAsyncLifetime
         await Page.GetByTestId("app-ready").WaitForAsync(new LocatorWaitForOptions { Timeout = 60_000 });
     }
 
-    /// <summary>Saves a named screenshot for review under artifacts/screenshots.</summary>
-    protected async Task ShotAsync(string name)
+    /// <summary>
+    /// Saves a named screenshot for review, under artifacts/screenshots unless another
+    /// directory is given.
+    /// </summary>
+    protected async Task ShotAsync(string name, string? directory = null)
     {
-        var dir = RepoLayout.EnsureDir(RepoLayout.ScreenshotsDir);
+        var dir = RepoLayout.EnsureDir(directory ?? RepoLayout.ScreenshotsDir);
         await Page.ScreenshotAsync(new PageScreenshotOptions
         {
             Path = Path.Combine(dir, $"{name}.png"),

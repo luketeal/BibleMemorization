@@ -6,6 +6,7 @@
 
 main {
     flex: 1;
+    background-color: var(--surface-page);
 }
 
 /*
@@ -57,8 +58,15 @@ main {
 }
 
 @media (min-width: 641px) {
+    /*
+       The sidebar sticks at 100vh so the nav stays put on a long page, which leaves
+       the rest of its column unpainted. Colouring the row and letting main paint over
+       its own share fills that gap — visible on any theme whose nav and page differ,
+       and glaring on a dark one.
+    */
     .page {
         flex-direction: row;
+        background-color: var(--surface-nav);
     }
 
     .sidebar {

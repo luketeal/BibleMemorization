@@ -48,8 +48,7 @@ public sealed class ScreenshotTour(AppFixture fixture, ITestOutputHelper output)
     public async Task Capture_practice()
     {
         await GotoAsync("library?demo=1");
-        await Page.GetByTestId("practice-link").First.ClickAsync();
-        await Page.GetByTestId("passage-view").WaitForAsync();
+        await TourSteps.OpenFirstPassageAsync(Page);
         await ShotAsync("10-practice-study-nothing-hidden");
 
         // A realistic mid-session state: some words gone, most still there.
@@ -57,21 +56,13 @@ public sealed class ScreenshotTour(AppFixture fixture, ITestOutputHelper output)
         await Page.GetByTestId("hide-more").ClickAsync();
         await ShotAsync("11-practice-study-partly-hidden");
 
-        // Hide two known words so the answers below can be deliberately mixed.
         await Page.GetByTestId("reveal-all").ClickAsync();
-        await Page.Locator("[data-testid=word]", new() { HasTextString = "God" }).First.ClickAsync();
-        await Page.Locator("[data-testid=word]", new() { HasTextString = "world" }).First.ClickAsync();
-        await Page.Locator("[data-testid=word]", new() { HasTextString = "perish" }).First.ClickAsync();
+        await TourSteps.HideKnownWordsAsync(Page);
 
         await Page.GetByTestId("mode-test").ClickAsync();
         await ShotAsync("12-practice-test-blanks");
 
-        // One right, one wrong, one left blank, so the results show all three outcomes.
-        await Page.GetByTestId("blank-input").Nth(0).FillAsync("God");
-        await Page.GetByTestId("blank-input").Nth(1).FillAsync("earth");
-
-        await Page.GetByTestId("check-answers").ClickAsync();
-        await Page.GetByTestId("results-panel").WaitForAsync();
+        await TourSteps.AnswerMixedAsync(Page);
         await ShotAsync("13-practice-results");
 
         // Back to Study, where first-letter actually shows its hints.

@@ -17,6 +17,9 @@ public static class RepoLayout
 
     public static string FailuresDir => Path.Combine(ArtifactsDir, "e2e");
 
+    /// <summary>Where <see cref="ThemeTour"/> writes its shots and contact sheet.</summary>
+    public static string ThemeShotsDir => Path.Combine(ArtifactsDir, "theme-shots");
+
     public static string EnsureDir(string path)
     {
         Directory.CreateDirectory(path);

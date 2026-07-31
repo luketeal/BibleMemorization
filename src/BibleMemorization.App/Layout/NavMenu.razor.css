@@ -13,6 +13,22 @@
 
 .navbar-brand {
     font-size: 1.1rem;
+    color: var(--ink-on-nav-active);
+}
+
+.navbar-brand:hover {
+    color: var(--ink-on-nav-active);
+}
+
+/* Bootstrap's toggler icon is a fixed-colour SVG, so it is masked instead — that way
+   the bars take the nav's ink and stay visible on a light sidebar as well as a dark. */
+.navbar-toggler-icon {
+    background-image: none;
+    background-color: var(--ink-on-nav);
+    mask-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(0,0,0,1)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-size: 100%;
 }
 
 .nav-item {
