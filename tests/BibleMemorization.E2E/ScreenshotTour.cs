@@ -74,7 +74,10 @@ public sealed class ScreenshotTour(AppFixture fixture, ITestOutputHelper output)
         await Page.GetByTestId("results-panel").WaitForAsync();
         await ShotAsync("13-practice-results");
 
+        // Back to Study, where first-letter actually shows its hints.
+        await Page.GetByTestId("mode-study").ClickAsync();
         await Page.GetByTestId("technique-first-letter").ClickAsync();
+        await Page.GetByTestId("hint").First.WaitForAsync();
         await ShotAsync("14-practice-first-letter");
     }
 

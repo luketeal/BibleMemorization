@@ -204,6 +204,25 @@ public sealed class PracticeTests(AppFixture fixture, ITestOutputHelper output)
 
     // ---- Techniques ----
 
+    /// <summary>
+    /// An initial is only half the cue; the other half is how long the word is. All
+    /// hints rendered at one width would throw that away, so a long word's hint has
+    /// to be visibly wider than a short one's.
+    /// </summary>
+    [Fact]
+    public async Task A_first_letter_hint_is_as_wide_as_the_word_it_stands_for()
+    {
+        await OpenPracticeAsync();
+        await Page.GetByTestId("technique-first-letter").ClickAsync();
+
+        // Token 23 is "everlasting" (11 letters); token 2 is "so" (2 letters).
+        var longWord = await Page.Locator("[data-testid=hint][data-token-index='23']").BoundingBoxAsync();
+        var shortWord = await Page.Locator("[data-testid=hint][data-token-index='2']").BoundingBoxAsync();
+
+        Assert.True(longWord!.Width > shortWord!.Width * 2,
+            $"Hint for 'everlasting' ({longWord.Width}) should be much wider than for 'so' ({shortWord.Width}).");
+    }
+
     [Fact]
     public async Task First_letter_mode_collapses_every_word_to_its_initial()
     {

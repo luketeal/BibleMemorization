@@ -33,8 +33,12 @@
                 }
                 else if (token.IsBlank)
                 {
-                    @* An abbreviated form, e.g. first-letter mode. *@
-                    <span class="pv-hint" data-testid="hint" data-token-index="@token.TokenIndex">@token.Text</span>
+                    @* An abbreviated form, e.g. first-letter mode. It is widened to
+                       the whole word so the initial sits at the start of a blank the
+                       length of what it stands for — the word's shape is half of what
+                       makes initials recallable. *@
+                    <span class="pv-hint" style="@HintStyle(token)"
+                          data-testid="hint" data-token-index="@token.TokenIndex">@token.Text</span>
                 }
                 else
                 {
@@ -95,5 +99,16 @@
     {
         var width = Math.Max(token.BlankWidth, 2);
         return string.Create(CultureInfo.InvariantCulture, $"width: {width * 0.62m:0.##}em");
+    }
+
+    /// <summary>
+    /// Sizes an abbreviated word to the full word it stands for, so a one-letter hint
+    /// still shows how long the word is. min-width rather than width, so a hint longer
+    /// than expected is never clipped.
+    /// </summary>
+    private static string HintStyle(DisplayToken token)
+    {
+        var width = Math.Max(token.BlankWidth, 2);
+        return string.Create(CultureInfo.InvariantCulture, $"min-width: {width * 0.62m:0.##}em");
     }
 }
