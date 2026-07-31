@@ -330,6 +330,28 @@
     color: var(--ink-muted);
 }
 
+/* Ticked boxes and slider thumbs are literal in Bootstrap too, and the settings page
+   is mostly made of them. */
+.form-check-input:checked {
+    background-color: var(--accent);
+    border-color: var(--accent);
+}
+
+.form-check-input {
+    background-color: var(--surface-raised);
+    border-color: var(--border-strong);
+}
+
+.form-range {
+    --bs-form-range-thumb-bg: var(--accent);
+    --bs-form-range-thumb-active-bg: var(--accent-ink);
+}
+
+.form-range::-webkit-slider-thumb { background-color: var(--accent); }
+.form-range::-moz-range-thumb { background-color: var(--accent); }
+.form-range::-webkit-slider-runnable-track { background-color: var(--border-strong); }
+.form-range::-moz-range-track { background-color: var(--border-strong); }
+
 /*
    ---- Themes ----
 
