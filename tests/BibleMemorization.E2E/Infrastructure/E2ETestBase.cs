@@ -16,6 +16,9 @@ public abstract class E2ETestBase : IAsyncLifetime
 
     protected IPage Page { get; private set; } = null!;
 
+    /// <summary>Exposed for the rare test that needs its own context, e.g. a different locale.</summary>
+    protected AppFixture Fixture => _fixture;
+
     protected string BaseUrl => _fixture.BaseUrl;
 
     protected E2ETestBase(AppFixture fixture, ITestOutputHelper output)

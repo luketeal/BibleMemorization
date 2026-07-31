@@ -167,7 +167,7 @@ else
     {
         <section class="results-panel" data-testid="results-panel">
             <h2>
-                <span data-testid="results-accuracy">@($"{_result.Accuracy:P0}")</span>
+                <span data-testid="results-accuracy">@Percent.Format(_result.Accuracy)</span>
                 &mdash; @_result.CorrectCount of @_result.ExpectedCount words
             </h2>
 
@@ -205,7 +205,7 @@ else
                 @foreach (var attempt in _attempts.OrderByDescending(a => a.Utc).Take(5))
                 {
                     <li>
-                        <strong>@($"{attempt.Accuracy:P0}")</strong>
+                        <strong>@Percent.Format(attempt.Accuracy)</strong>
                         &middot; @attempt.InputMode.ToString().ToLowerInvariant()
                         &middot; @attempt.Utc.ToLocalTime().ToString("d MMM HH:mm")
                     </li>

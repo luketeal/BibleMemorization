@@ -242,4 +242,35 @@ public sealed class PracticeTests(AppFixture fixture, ITestOutputHelper output)
 
         await Assertions.Expect(Page.GetByTestId("practice-missing")).ToBeVisibleAsync();
     }
+
+    /// <summary>
+    /// Guards the regression directly in the browser. Blazor WebAssembly takes its
+    /// culture from the browser, and a "P0" format rendered "100 %" with a space
+    /// under some locales - which passed locally and failed in CI. A French locale
+    /// is a locale that formats percentages with a space, so this fails if the
+    /// culture-dependent format ever comes back.
+    /// </summary>
+    [Fact]
+    public async Task Accuracy_reads_the_same_under_a_non_english_locale()
+    {
+        await using var context = await Fixture.Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            Locale = "fr-FR",
+            ViewportSize = new ViewportSize { Width = 1280, Height = 800 },
+        });
+
+        var page = await context.NewPageAsync();
+        await page.GotoAsync($"{BaseUrl}/library?demo=1");
+        await page.GetByTestId("app-ready").WaitForAsync(new LocatorWaitForOptions { Timeout = 60_000 });
+
+        await page.GetByTestId("practice-link").First.ClickAsync();
+        await page.GetByTestId("mode-test").ClickAsync();
+        await page.GetByTestId("input-recite").ClickAsync();
+        await page.GetByTestId("recite-box").FillAsync(
+            "For God so loved the world, that he gave his only begotten Son, "
+            + "that whosoever believeth in him should not perish, but have everlasting life.");
+        await page.GetByTestId("check-answers").ClickAsync();
+
+        await Assertions.Expect(page.GetByTestId("results-accuracy")).ToHaveTextAsync("100%");
+    }
 }
