@@ -30,8 +30,10 @@ export function set(theme) {
         // Storage blocked. The choice still applies for this session.
     }
 
-    // system(), not resolve(): going back to following the device has to ignore any
-    // ?theme= in the URL, or choosing it on such a page would change nothing.
+    // system(), not resolve(): removeItem above can throw while getItem still
+    // succeeds — a quota error, or a partially blocked store — and resolve() would
+    // then read the stale key and re-apply the theme just turned off. system() reads
+    // the device and cannot go stale.
     boot().apply(theme ?? boot().system());
     return current();
 }

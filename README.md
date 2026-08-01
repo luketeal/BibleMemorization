@@ -136,11 +136,9 @@ followed live if the device switches to night mode mid-session.
 
 The theme is chosen by an inline script in `index.html`, deliberately before the
 stylesheets are requested — anything later paints the wrong theme first and swaps it
-under the reader. It reads `?theme=`, then `localStorage`, then the operating
-system's `prefers-color-scheme`. A theme named in the URL applies to that page only
-and is never stored, so a link or a screenshot run cannot overwrite a preference.
-"Match my device" deliberately skips that first step, or picking it on a `?theme=`
-page would appear to do nothing.
+under the reader. It reads `localStorage`, falling back to the operating system's
+`prefers-color-scheme`. The stored value is checked against the known themes rather
+than trusted, since it can be hand-edited or left over from an older build.
 
 The preference lives in its own `localStorage` key rather than in `AppSettings`, so
 it is not carried in the exported `.save` file. It has to be readable before the

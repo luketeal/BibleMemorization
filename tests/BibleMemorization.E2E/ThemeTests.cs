@@ -5,7 +5,8 @@ using Xunit.Abstractions;
 namespace BibleMemorization.E2E;
 
 /// <summary>
-/// The three ways a theme gets chosen, and the one rule about which of them wins.
+/// The two ways a theme gets chosen — a stored choice, or the device — and the rule
+/// about which of them wins.
 ///
 /// These drive the inline boot script in index.html rather than any Blazor code, so
 /// they assert on the attributes it sets rather than on colour.
@@ -19,18 +20,19 @@ public sealed class ThemeTests(AppFixture fixture, ITestOutputHelper output)
     private Task<string> BootstrapThemeAsync() =>
         Page.EvaluateAsync<string>("() => document.documentElement.dataset.bsTheme");
 
-    [Fact]
-    public async Task A_theme_can_be_named_in_the_url()
-    {
-        await GotoAsync("?demo=1&theme=light");
+    private Task StoreAsync(string theme) => Page.EvaluateAsync(
+        "t => window.localStorage.setItem('biblememorization.theme', t)", theme);
 
-        Assert.Equal("light", await ThemeAsync());
-    }
+    private Task<string?> StoredAsync() => Page.EvaluateAsync<string?>(
+        "() => window.localStorage.getItem('biblememorization.theme')");
 
     [Fact]
     public async Task A_dark_theme_hands_bootstrap_its_own_dark_mode()
     {
-        await GotoAsync("?demo=1&theme=dark");
+        await GotoAsync("?demo=1");
+        await StoreAsync("dark");
+
+        await GotoAsync("?demo=1");
 
         Assert.Equal("dark", await BootstrapThemeAsync());
         Assert.Equal("dark", await Page.EvaluateAsync<string>(
@@ -38,9 +40,14 @@ public sealed class ThemeTests(AppFixture fixture, ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task An_unknown_theme_is_ignored_rather_than_applied()
+    public async Task An_unrecognized_stored_theme_falls_back_to_the_device()
     {
-        await GotoAsync("?demo=1&theme=chartreuse");
+        // The stored value is not trusted: it can be hand-edited, and it can be left
+        // over from a build whose themes were named differently.
+        await GotoAsync("?demo=1");
+        await StoreAsync("chartreuse");
+
+        await GotoAsync("?demo=1");
 
         Assert.Equal("light", await ThemeAsync());
     }
@@ -49,22 +56,11 @@ public sealed class ThemeTests(AppFixture fixture, ITestOutputHelper output)
     public async Task A_stored_choice_survives_a_reload()
     {
         await GotoAsync("?demo=1");
-        await Page.EvaluateAsync(
-            "() => window.localStorage.setItem('biblememorization.theme', 'dark')");
+        await StoreAsync("dark");
 
         await GotoAsync("?demo=1");
 
         Assert.Equal("dark", await ThemeAsync());
-    }
-
-    [Fact]
-    public async Task A_theme_named_in_the_url_is_not_written_to_storage()
-    {
-        // Otherwise a screenshot run or a shared link would overwrite a real preference.
-        await GotoAsync("?demo=1&theme=dark");
-
-        Assert.Null(await Page.EvaluateAsync<string?>(
-            "() => window.localStorage.getItem('biblememorization.theme')"));
     }
 
     [Fact]
@@ -73,8 +69,7 @@ public sealed class ThemeTests(AppFixture fixture, ITestOutputHelper output)
         await Page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Dark });
 
         await GotoAsync("?demo=1");
-        await Page.EvaluateAsync(
-            "() => window.localStorage.setItem('biblememorization.theme', 'light')");
+        await StoreAsync("light");
 
         await GotoAsync("?demo=1");
 
@@ -128,8 +123,7 @@ public sealed class ThemeTests(AppFixture fixture, ITestOutputHelper output)
     public async Task The_picker_opens_showing_a_previously_stored_choice()
     {
         await GotoAsync("?demo=1");
-        await Page.EvaluateAsync(
-            "() => window.localStorage.setItem('biblememorization.theme', 'dark')");
+        await StoreAsync("dark");
 
         await GotoAsync("settings?demo=1");
 
@@ -137,29 +131,20 @@ public sealed class ThemeTests(AppFixture fixture, ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task Matching_the_device_clears_the_stored_choice()
+    public async Task Matching_the_device_clears_the_choice_and_reverts_the_theme()
     {
+        // Both halves matter. Clearing the key is what makes the device authoritative
+        // again on the next load; reverting the theme now is what makes the setting
+        // appear to do something, and is why set(null) applies system() rather than
+        // resolve() — resolve() would re-read a key whose removal had failed.
+        await Page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Light });
         await GotoAsync("settings?demo=1");
         await Page.GetByTestId("theme-picker").SelectOptionAsync("dark");
-
-        await Page.GetByTestId("theme-picker").SelectOptionAsync("system");
-
-        Assert.Null(await Page.EvaluateAsync<string?>(
-            "() => window.localStorage.getItem('biblememorization.theme')"));
-    }
-
-    [Fact]
-    public async Task Matching_the_device_is_not_hijacked_by_a_theme_in_the_url()
-    {
-        // Resolution normally lets the URL win, which is what makes the screenshot
-        // tour work. But "match my device" has to mean the device — otherwise choosing
-        // it on a ?theme= page would appear to do nothing at all.
-        await Page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Light });
-        await GotoAsync("settings?demo=1&theme=dark");
         Assert.Equal("dark", await ThemeAsync());
 
         await Page.GetByTestId("theme-picker").SelectOptionAsync("system");
 
+        Assert.Null(await StoredAsync());
         Assert.Equal("light", await ThemeAsync());
     }
 

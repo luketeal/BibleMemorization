@@ -15,9 +15,6 @@
         library is loaded through a JS module import after the whole WebAssembly
         runtime downloads, so it is far too late to ask; localStorage is synchronous
         and available right here.
-
-        A theme named in the URL applies for this page only and is never stored, so a
-        screenshot run or a shared link cannot overwrite someone's saved preference.
     -->
     <script>
         (function () {
@@ -42,35 +39,18 @@
                 }
             }
 
-            function fromUrl() {
-                try {
-                    var value = new URLSearchParams(window.location.search).get('theme');
-                    return THEMES.indexOf(value) >= 0 ? value : null;
-                } catch (e) {
-                    return null;
-                }
-            }
-
-            // What the operating system asks for, ignoring both the URL and any
-            // stored choice. This is what "match my device" in Settings means, and
-            // it has to skip the URL — otherwise choosing it on a ?theme= page would
-            // just re-apply the theme from the URL.
+            // What the device asks for, ignoring any stored choice. This is what
+            // "match my device" in Settings means.
             function system() {
                 return prefersDark() ? 'dark' : 'light';
             }
 
+            // The stored value is checked against THEMES rather than trusted: it can
+            // be hand-edited, and it can be left over from a build that named its
+            // themes differently.
             function resolve() {
-                var choice = fromUrl();
-                if (choice) {
-                    return choice;
-                }
-
-                choice = stored();
-                if (THEMES.indexOf(choice) >= 0) {
-                    return choice;
-                }
-
-                return system();
+                var choice = stored();
+                return THEMES.indexOf(choice) >= 0 ? choice : system();
             }
 
             function apply(theme) {

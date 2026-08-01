@@ -67,15 +67,13 @@ public sealed class ThemeTour(AppFixture fixture, ITestOutputHelper output)
 
     private async Task CaptureThemeAsync(string theme, string dir)
     {
-        // The theme rides on the query string, so it is applied by the inline script
-        // during head parsing — before the first paint, and before any Blazor code
-        // exists. That leaves no race to wait out and no flash to photograph.
         await Page.SetViewportSizeAsync(Desktop.Width, Desktop.Height);
+        await StoreThemeAsync(theme);
 
-        await GotoAsync($"?demo=1&theme={theme}");
+        await GotoAsync("?demo=1");
         await ShotAsync(Name("01-home", theme), dir);
 
-        await GotoAsync($"library?demo=1&theme={theme}");
+        await GotoAsync("library?demo=1");
         await ShotAsync(Name("02-library", theme), dir);
 
         await TourSteps.OpenFirstPassageAsync(Page);
@@ -88,14 +86,30 @@ public sealed class ThemeTour(AppFixture fixture, ITestOutputHelper output)
         await TourSteps.AnswerMixedAsync(Page);
         await ShotAsync(Name("05-practice-results", theme), dir);
 
-        await GotoAsync($"settings?demo=1&theme={theme}");
+        await GotoAsync("settings?demo=1");
         await ShotAsync(Name("06-settings", theme), dir);
 
         await Page.SetViewportSizeAsync(Mobile.Width, Mobile.Height);
-        await GotoAsync($"library?demo=1&theme={theme}");
+        await GotoAsync("library?demo=1");
         await TourSteps.OpenFirstPassageAsync(Page);
         await TourSteps.HideKnownWordsAsync(Page);
         await ShotAsync(Name("07-mobile-practice", theme), dir);
+    }
+
+    /// <summary>
+    /// Stores the theme the way the Settings picker does, so the tour photographs the
+    /// same path a real preference takes. It needs a page open before localStorage
+    /// exists to write to, and the value is only read at load, so this lands on the
+    /// visit after — which every caller does anyway.
+    ///
+    /// The inline script in index.html reads it during head parsing, before the first
+    /// paint and before any Blazor code exists, so there is no flash to photograph.
+    /// </summary>
+    private async Task StoreThemeAsync(string theme)
+    {
+        await GotoAsync("?demo=1");
+        await Page.EvaluateAsync(
+            "t => window.localStorage.setItem('biblememorization.theme', t)", theme);
     }
 
     /// <summary>
