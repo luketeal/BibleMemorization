@@ -1,15 +1,15 @@
-// Appearance preference. The resolution logic itself lives in the inline script in
-// index.html, because it has to run before the first paint — this module drives that
-// same logic afterwards rather than duplicating it.
+// Appearance preference, driven from the Settings page. The resolution logic itself
+// lives in the inline script in index.html, because it has to run before the first
+// paint — this module drives that same logic afterwards rather than duplicating it.
 
 const boot = () => window.__bmTheme;
 
-/** The theme currently applied, e.g. 'blue' or 'dark'. */
+/** The theme currently applied, e.g. 'light' or 'dark'. */
 export function current() {
     return document.documentElement.getAttribute('data-theme');
 }
 
-/** The stored choice, or null when following the system. */
+/** The stored choice, or null when following the device. */
 export function get() {
     try {
         return window.localStorage.getItem(boot().KEY);
@@ -18,7 +18,7 @@ export function get() {
     }
 }
 
-/** Stores an explicit choice and applies it. Passing null goes back to following the system. */
+/** Stores an explicit choice and applies it. Passing null goes back to following the device. */
 export function set(theme) {
     try {
         if (theme === null) {
@@ -30,19 +30,8 @@ export function set(theme) {
         // Storage blocked. The choice still applies for this session.
     }
 
-    boot().apply(theme ?? boot().resolve());
+    // system(), not resolve(): going back to following the device has to ignore any
+    // ?theme= in the URL, or choosing it on such a page would change nothing.
+    boot().apply(theme ?? boot().system());
     return current();
-}
-
-// Follow the system when it changes, but only while no explicit choice is stored —
-// otherwise the user's own setting would be overridden the moment their machine
-// switched to night mode.
-try {
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-        if (get() === null) {
-            boot().apply(boot().resolve());
-        }
-    });
-} catch {
-    // No matchMedia, or no listener support. The theme is simply fixed for the session.
 }

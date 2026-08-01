@@ -18,7 +18,7 @@ public sealed class ThemeTour(AppFixture fixture, ITestOutputHelper output)
 {
     private readonly ITestOutputHelper _out = output;
 
-    private static readonly string[] Themes = ["slate", "dark"];
+    private static readonly string[] Themes = ["light", "dark"];
 
     private static readonly ViewportSize Desktop = new() { Width = 1280, Height = 800 };
     private static readonly ViewportSize Mobile = new() { Width = 390, Height = 844 };
@@ -100,7 +100,7 @@ public sealed class ThemeTour(AppFixture fixture, ITestOutputHelper output)
 
     /// <summary>
     /// Two hyphens between view and theme, so a theme name containing one still parses,
-    /// and the view first so all three themes of a view sort next to each other.
+    /// and the view first so every theme of a view sorts next to the others.
     /// </summary>
     private static string Name(string view, string theme) => $"{view}--{theme}";
 
@@ -121,7 +121,7 @@ public sealed class ThemeTour(AppFixture fixture, ITestOutputHelper output)
         figure { margin: 0; }
         img { width: 100%; display: block; border: 1px solid var(--line); border-radius: 8px;
               background: #fff; cursor: zoom-in; }
-        /* Full-page shots get small in three columns, so a click blows one up. */
+        /* Full-page shots get small side by side, so a click blows one up. */
         body.zoomed { overflow: hidden; }
         .zoom-layer { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10;
                       overflow: auto; padding: 1rem; display: none; }
@@ -178,7 +178,7 @@ public sealed class ThemeTour(AppFixture fixture, ITestOutputHelper output)
             + "Rows are views, columns are themes. Click any shot to enlarge.</p>");
 
         html.AppendLine("<div class=\"controls\">");
-        html.AppendLine("  <button data-theme=\"all\" aria-pressed=\"true\">All three</button>");
+        html.AppendLine("  <button data-theme=\"all\" aria-pressed=\"true\">Both</button>");
         foreach (var theme in Themes)
         {
             html.AppendLine($"  <button data-theme=\"{theme}\" aria-pressed=\"false\">{theme}</button>");

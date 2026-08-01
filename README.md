@@ -125,16 +125,27 @@ semantic tier gives those colours roles. Rules reference the semantic tier, so a
 theme redefines about twenty primitives rather than restating the stylesheet. The
 tokens also map onto Bootstrap's own variables, which themes its components too.
 
-Two themes: **slate** (light, the default) and **dark**. Slate is simply the base
-values, so it needs no block of its own; dark redefines the primitives under
+Two themes: **light** (the default) and **dark**. Light is simply the base values, so
+it needs no block of its own; dark redefines the primitives under
 `:root[data-theme="dark"]`, restating the whole semantic ramp because pale state
 fills turn to muck on a dark surface.
+
+Settings → Appearance offers *Match my device*, *Light* and *Dark*. Choosing to match
+the device stores nothing and falls back to `prefers-color-scheme`, which is also
+followed live if the device switches to night mode mid-session.
 
 The theme is chosen by an inline script in `index.html`, deliberately before the
 stylesheets are requested — anything later paints the wrong theme first and swaps it
 under the reader. It reads `?theme=`, then `localStorage`, then the operating
 system's `prefers-color-scheme`. A theme named in the URL applies to that page only
 and is never stored, so a link or a screenshot run cannot overwrite a preference.
+"Match my device" deliberately skips that first step, or picking it on a `?theme=`
+page would appear to do nothing.
+
+The preference lives in its own `localStorage` key rather than in `AppSettings`, so
+it is not carried in the exported `.save` file. It has to be readable before the
+WebAssembly runtime exists at all, and appearance is a property of the device you are
+reading on — restoring a library onto a phone at night should not relight the screen.
 
 Tokens must stay in `app.css`. Blazor's scoped-CSS rewriter appends the scope
 attribute to the last compound selector, so a `:root` block in a `.razor.css` would

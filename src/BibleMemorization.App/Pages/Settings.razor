@@ -1,6 +1,7 @@
 @page "/settings"
 @inject LibraryService Library
 @inject StorageProviderRegistry Providers
+@inject ThemeService Theme
 @inject AppMode Mode
 
 <PageTitle>Settings - Bible Memorization</PageTitle>
@@ -67,6 +68,26 @@
     </div>
 </section>
 
+<section class="settings-section">
+    <h2>Appearance</h2>
+
+    <div class="form-group">
+        <label for="theme-picker">Theme</label>
+        <select id="theme-picker" class="form-select" value="@_themeChoice"
+                @onchange="OnThemeChangedAsync" data-testid="theme-picker">
+            <option value="@SystemChoice">Match my device</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+        </select>
+    </div>
+
+    @* "Match my device" does not say which way that resolved, and a ?theme= in the
+       URL can override the stored choice, so name what is actually on screen. *@
+    <p class="field-hint" data-testid="theme-applied">
+        Showing the @(_appliedTheme == "dark" ? "dark" : "light") theme.
+    </p>
+</section>
+
 <section class="settings-section danger-zone">
     <h2>Clear everything</h2>
     <p class="field-hint">Removes every passage and all progress from this browser. There's no undo.</p>
@@ -85,15 +106,42 @@
 </section>
 
 @code {
+    /// <summary>The select's stand-in for "nothing stored", which the service takes as null.</summary>
+    private const string SystemChoice = "system";
+
     private AppSettings _settings = AppSettings.Default;
     private bool _confirmingClear;
+    private string _themeChoice = SystemChoice;
+    private string _appliedTheme = "light";
 
-    protected override void OnInitialized() => _settings = Library.Settings;
+    protected override async Task OnInitializedAsync()
+    {
+        _settings = Library.Settings;
+        await ReadThemeAsync();
+    }
 
     private async Task Update(Func<AppSettings, AppSettings> change)
     {
         _settings = change(_settings);
         await Library.SaveSettingsAsync(_settings);
+    }
+
+    /// <summary>
+    /// The one control here that is not an AppSettings value. The theme has to be
+    /// readable before the runtime starts, so it lives in its own browser storage and
+    /// goes through ThemeService rather than <see cref="Update" />.
+    /// </summary>
+    private async Task OnThemeChangedAsync(ChangeEventArgs e)
+    {
+        _themeChoice = e.Value?.ToString() ?? SystemChoice;
+        await Theme.SetAsync(_themeChoice == SystemChoice ? null : _themeChoice);
+        await ReadThemeAsync();
+    }
+
+    private async Task ReadThemeAsync()
+    {
+        _themeChoice = await Theme.GetChoiceAsync() ?? SystemChoice;
+        _appliedTheme = await Theme.CurrentAsync();
     }
 
     private async Task ClearAsync()

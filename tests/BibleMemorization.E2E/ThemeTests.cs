@@ -22,9 +22,9 @@ public sealed class ThemeTests(AppFixture fixture, ITestOutputHelper output)
     [Fact]
     public async Task A_theme_can_be_named_in_the_url()
     {
-        await GotoAsync("?demo=1&theme=slate");
+        await GotoAsync("?demo=1&theme=light");
 
-        Assert.Equal("slate", await ThemeAsync());
+        Assert.Equal("light", await ThemeAsync());
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public sealed class ThemeTests(AppFixture fixture, ITestOutputHelper output)
     {
         await GotoAsync("?demo=1&theme=chartreuse");
 
-        Assert.Equal("slate", await ThemeAsync());
+        Assert.Equal("light", await ThemeAsync());
     }
 
     [Fact]
@@ -74,11 +74,11 @@ public sealed class ThemeTests(AppFixture fixture, ITestOutputHelper output)
 
         await GotoAsync("?demo=1");
         await Page.EvaluateAsync(
-            "() => window.localStorage.setItem('biblememorization.theme', 'slate')");
+            "() => window.localStorage.setItem('biblememorization.theme', 'light')");
 
         await GotoAsync("?demo=1");
 
-        Assert.Equal("slate", await ThemeAsync());
+        Assert.Equal("light", await ThemeAsync());
     }
 
     [Fact]
@@ -99,5 +99,78 @@ public sealed class ThemeTests(AppFixture fixture, ITestOutputHelper output)
         await GotoAsync("?demo=1");
 
         Assert.Equal("light", await BootstrapThemeAsync());
+    }
+
+    [Fact]
+    public async Task The_settings_picker_applies_a_theme()
+    {
+        await GotoAsync("settings?demo=1");
+        await Page.GetByTestId("theme-picker").SelectOptionAsync("dark");
+
+        Assert.Equal("dark", await ThemeAsync());
+        Assert.Equal("dark", await BootstrapThemeAsync());
+    }
+
+    [Fact]
+    public async Task A_theme_chosen_in_settings_survives_leaving_the_page()
+    {
+        await GotoAsync("settings?demo=1");
+        await Page.GetByTestId("theme-picker").SelectOptionAsync("dark");
+
+        await Page.GetByTestId("nav-library").ClickAsync();
+        await Page.GetByTestId("nav-settings").ClickAsync();
+
+        Assert.Equal("dark", await ThemeAsync());
+        await Assertions.Expect(Page.GetByTestId("theme-picker")).ToHaveValueAsync("dark");
+    }
+
+    [Fact]
+    public async Task The_picker_opens_showing_a_previously_stored_choice()
+    {
+        await GotoAsync("?demo=1");
+        await Page.EvaluateAsync(
+            "() => window.localStorage.setItem('biblememorization.theme', 'dark')");
+
+        await GotoAsync("settings?demo=1");
+
+        await Assertions.Expect(Page.GetByTestId("theme-picker")).ToHaveValueAsync("dark");
+    }
+
+    [Fact]
+    public async Task Matching_the_device_clears_the_stored_choice()
+    {
+        await GotoAsync("settings?demo=1");
+        await Page.GetByTestId("theme-picker").SelectOptionAsync("dark");
+
+        await Page.GetByTestId("theme-picker").SelectOptionAsync("system");
+
+        Assert.Null(await Page.EvaluateAsync<string?>(
+            "() => window.localStorage.getItem('biblememorization.theme')"));
+    }
+
+    [Fact]
+    public async Task Matching_the_device_is_not_hijacked_by_a_theme_in_the_url()
+    {
+        // Resolution normally lets the URL win, which is what makes the screenshot
+        // tour work. But "match my device" has to mean the device — otherwise choosing
+        // it on a ?theme= page would appear to do nothing at all.
+        await Page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Light });
+        await GotoAsync("settings?demo=1&theme=dark");
+        Assert.Equal("dark", await ThemeAsync());
+
+        await Page.GetByTestId("theme-picker").SelectOptionAsync("system");
+
+        Assert.Equal("light", await ThemeAsync());
+    }
+
+    [Fact]
+    public async Task The_hint_names_the_theme_actually_on_screen()
+    {
+        // Nothing is stored, so the picker reads "match my device" either way; the
+        // hint is what tells you which way that resolved.
+        await Page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Dark });
+        await GotoAsync("settings?demo=1");
+
+        await Assertions.Expect(Page.GetByTestId("theme-applied")).ToContainTextAsync("dark");
     }
 }

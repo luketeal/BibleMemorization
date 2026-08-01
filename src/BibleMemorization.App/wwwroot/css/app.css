@@ -355,8 +355,8 @@
 /*
    ---- Themes ----
 
-   Slate is the light theme and is simply the values above, so data-theme="slate"
-   matches no block of its own and needs none. Dark redefines primitives; the semantic
+   The light theme is simply the values above, so data-theme="light" matches no block
+   of its own and needs none. Dark redefines primitives; the semantic
    tier maps them through, so nothing below this point knows which theme is active.
    The attribute is set by the inline script in index.html before the first paint.
 

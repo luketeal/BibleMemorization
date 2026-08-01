@@ -21,7 +21,7 @@
     -->
     <script>
         (function () {
-            var THEMES = ['slate', 'dark'];
+            var THEMES = ['light', 'dark'];
             var KEY = 'biblememorization.theme';
             var DARK = '(prefers-color-scheme: dark)';
 
@@ -51,6 +51,14 @@
                 }
             }
 
+            // What the operating system asks for, ignoring both the URL and any
+            // stored choice. This is what "match my device" in Settings means, and
+            // it has to skip the URL — otherwise choosing it on a ?theme= page would
+            // just re-apply the theme from the URL.
+            function system() {
+                return prefersDark() ? 'dark' : 'light';
+            }
+
             function resolve() {
                 var choice = fromUrl();
                 if (choice) {
@@ -62,8 +70,7 @@
                     return choice;
                 }
 
-                // No explicit choice: follow the operating system.
-                return prefersDark() ? 'dark' : 'slate';
+                return system();
             }
 
             function apply(theme) {
@@ -78,8 +85,25 @@
                 root.style.colorScheme = isDark ? 'dark' : 'light';
             }
 
-            window.__bmTheme = { THEMES: THEMES, KEY: KEY, resolve: resolve, apply: apply };
+            window.__bmTheme = {
+                THEMES: THEMES, KEY: KEY, resolve: resolve, apply: apply, system: system
+            };
             apply(resolve());
+
+            // Follow the device when it changes, but only while no explicit choice is
+            // stored — otherwise someone's own setting would be overridden the moment
+            // their machine switched to night mode. This lives here rather than in
+            // js/theme.js because a module listener only runs if something imports the
+            // module, and on most pages nothing does.
+            try {
+                window.matchMedia(DARK).addEventListener('change', function () {
+                    if (THEMES.indexOf(stored()) < 0) {
+                        apply(resolve());
+                    }
+                });
+            } catch (e) {
+                // No matchMedia, or no listener support. The theme is fixed for the session.
+            }
         })();
     </script>
     <link rel="preload" id="webassembly" />
