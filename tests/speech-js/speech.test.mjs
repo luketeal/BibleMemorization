@@ -43,9 +43,22 @@ class FakeRecognition {
     }
 
     fireResult(transcript, isFinal) {
+        this.fireResults([{ transcript, isFinal }]);
+    }
+
+    /**
+     * One event carrying several results, which is how a session that has already
+     * settled some words reports the next ones. `resultIndex` stays at 0 the way
+     * Android's Chrome leaves it, so nothing here relies on it being right.
+     */
+    fireResults(results) {
         this.onresult?.({
             resultIndex: 0,
-            results: [{ 0: { transcript }, isFinal, length: 1 }],
+            results: results.map(({ transcript, isFinal }) => ({
+                0: { transcript },
+                isFinal,
+                length: 1,
+            })),
         });
     }
 }
@@ -224,6 +237,110 @@ test('empty transcripts are dropped', async () => {
     FakeRecognition.instances.at(-1).fireResult('   ', true);
 
     assert.equal(ref.transcripts().length, 0);
+});
+
+/**
+ * The Samsung/Android regression. Chrome on Android resends the whole utterance
+ * each time it grows and flags every copy as final, so appending what arrived
+ * turned one recitation of John 3:16 into "for for God for God for God so ...".
+ * The app appends finals, so each one must carry only the words it added.
+ */
+test('a growing utterance flagged final over and over is sent on once', async () => {
+    const speech = await loadSpeech();
+    const ref = recorder();
+
+    speech.startRecognition(ref, 'en-US');
+
+    for (const said of ['for', 'for God', 'for God', 'for God so', 'for God so loved the world']) {
+        FakeRecognition.instances.at(-1).fireResult(said, true);
+    }
+
+    const heard = ref
+        .transcripts()
+        .filter((c) => c.args[1])
+        .map((c) => c.args[0])
+        .join(' ');
+
+    assert.equal(heard, 'for God so loved the world');
+});
+
+test('results replayed alongside new ones are not counted twice', async () => {
+    const speech = await loadSpeech();
+    const ref = recorder();
+
+    speech.startRecognition(ref, 'en-US');
+
+    // A stale `resultIndex` means every settled result looks new again.
+    FakeRecognition.instances.at(-1).fireResults([{ transcript: 'for God so loved', isFinal: true }]);
+    FakeRecognition.instances.at(-1).fireResults([
+        { transcript: 'for God so loved', isFinal: true },
+        { transcript: 'the world', isFinal: true },
+    ]);
+
+    assert.deepEqual(ref.transcripts().map((c) => c.args), [
+        ['for God so loved', true],
+        ['the world', true],
+    ]);
+});
+
+test('a revised tail replaces the guess it corrects', async () => {
+    const speech = await loadSpeech();
+    const ref = recorder();
+
+    speech.startRecognition(ref, 'en-US');
+    FakeRecognition.instances.at(-1).fireResult('for God so loved the word', true);
+    FakeRecognition.instances.at(-1).fireResult('for God so loved the world', true);
+
+    // Only the corrected word is new; the five words before it were already sent.
+    assert.deepEqual(ref.transcripts().at(-1).args, ['world', true]);
+});
+
+test('interim text does not repeat words already settled', async () => {
+    const speech = await loadSpeech();
+    const ref = recorder();
+
+    speech.startRecognition(ref, 'en-US');
+    FakeRecognition.instances.at(-1).fireResults([{ transcript: 'for God so loved', isFinal: true }]);
+
+    // Android's interim guesses carry the settled words along with the new ones.
+    FakeRecognition.instances.at(-1).fireResults([
+        { transcript: 'for God so loved', isFinal: true },
+        { transcript: 'for God so loved the world', isFinal: false },
+    ]);
+
+    // The app shows interim text beside the finals it has, so the overlap goes.
+    assert.deepEqual(ref.transcripts().at(-1).args, ['the world', false]);
+});
+
+test('separate utterances still accumulate', async () => {
+    const speech = await loadSpeech();
+    const ref = recorder();
+
+    speech.startRecognition(ref, 'en-US');
+
+    // Desktop Chrome finalises each utterance once, with no overlap between them.
+    FakeRecognition.instances.at(-1).fireResult('for God so loved the world', true);
+    FakeRecognition.instances.at(-1).fireResult('that he gave his only begotten Son', true);
+
+    assert.deepEqual(ref.transcripts().map((c) => c.args), [
+        ['for God so loved the world', true],
+        ['that he gave his only begotten Son', true],
+    ]);
+});
+
+test('a new session starts from an empty transcript', async () => {
+    const speech = await loadSpeech();
+    const ref = recorder();
+
+    speech.startRecognition(ref, 'en-US');
+    FakeRecognition.instances.at(-1).fireResult('for God so loved the world', true);
+    speech.stopRecognition();
+
+    // Reciting the same passage again must not be mistaken for a replay of the last.
+    speech.startRecognition(ref, 'en-US');
+    FakeRecognition.instances.at(-1).fireResult('for God so loved the world', true);
+
+    assert.deepEqual(ref.transcripts().at(-1).args, ['for God so loved the world', true]);
 });
 
 test('an unsupported browser reports so rather than throwing', async () => {
