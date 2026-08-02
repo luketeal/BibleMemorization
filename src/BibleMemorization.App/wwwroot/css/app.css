@@ -351,6 +351,24 @@
 .form-range::-moz-range-track { background-color: var(--border-strong); }
 
 /*
+   A slider's focus ring is drawn on the thumb, not on the input, so the shared focus
+   rule below cannot reach it — Bootstrap's own white halo and default blue survive
+   there otherwise.
+
+   Kept as two rules on purpose. A browser that does not recognise one of these vendor
+   pseudo-elements discards the whole rule it appears in, so grouping the selectors
+   would silently disable both. Note that Chromium reports no computed style for
+   ::-webkit-slider-thumb, so FocusRingTests cannot see these — they are verified by eye.
+*/
+.form-range:focus::-webkit-slider-thumb {
+    box-shadow: 0 0 0 0.1rem var(--surface-page), 0 0 0 0.25rem var(--accent-ring);
+}
+
+.form-range:focus::-moz-range-thumb {
+    box-shadow: 0 0 0 0.1rem var(--surface-page), 0 0 0 0.25rem var(--accent-ring);
+}
+
+/*
    ---- Themes ----
 
    The light theme is simply the values above, so data-theme="light" matches no block
@@ -460,7 +478,8 @@ a, .btn-link {
    the control beneath it, so it stays legible on a dark surface as well as a light
    one.
 */
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus,
+.form-control:focus, .form-select:focus, .form-check-input:focus {
   box-shadow: 0 0 0 0.1rem var(--surface-page), 0 0 0 0.25rem var(--accent-ring);
 }
 

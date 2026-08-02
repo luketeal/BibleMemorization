@@ -63,6 +63,16 @@
     color: var(--ink-on-nav-active);
 }
 
+/*
+   Bootstrap gives .nav-link a focus ring in its own default blue. These links sit on
+   the sidebar rather than the page, so the ring is drawn here, against --surface-nav,
+   rather than in the shared focus rule in app.css.
+*/
+.nav-item ::deep a:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 0.1rem var(--surface-nav), 0 0 0 0.25rem var(--accent-ring);
+}
+
 @media (min-width: 641px) {
     .navbar-toggler {
         display: none;
