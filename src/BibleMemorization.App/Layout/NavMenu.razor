@@ -1,6 +1,8 @@
 @inject AppMode Mode
 
-<div class="top-row ps-3 navbar navbar-dark">
+@* No navbar-dark: it hardcodes white brand and toggler, which a light sidebar cannot
+   use. The colours come from tokens in NavMenu.razor.css instead. *@
+<div class="top-row ps-3 navbar">
     <div class="container-fluid">
         <a class="navbar-brand" href="">Bible Memorization</a>
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">

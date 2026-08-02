@@ -490,11 +490,17 @@ else
             ? correct ? "pv-input-correct" : "pv-input-wrong"
             : null;
 
+    /// <summary>
+    /// Sizes an answer field to the word it stands in for. A typed answer needs more
+    /// room per character than a static blank, so CSS scales this by
+    /// <c>--pv-ch-width-input</c> rather than <c>--pv-ch-width</c>. The floor is higher
+    /// than a blank's because a field also has to be comfortable to type in.
+    /// </summary>
     private static string InputWidth(DisplayToken token)
     {
-        var width = Math.Max(token.BlankWidth, 3);
+        var chars = Math.Max(token.BlankWidth, 3);
         return System.String.Create(
-            System.Globalization.CultureInfo.InvariantCulture, $"width: {width * 0.72m:0.##}em");
+            System.Globalization.CultureInfo.InvariantCulture, $"--pv-chars: {chars}");
     }
 
     private async Task CheckAllAsync()

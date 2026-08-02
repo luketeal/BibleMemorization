@@ -5,11 +5,11 @@
     </div>
 
     <main>
-        <div class="top-row px-4">
-            <span class="build-tag" data-testid="app-ready">Bible Memorization</span>
-        </div>
-
-        <article class="content px-4">
+        @* The readiness marker the E2E suite waits on before every assertion. It sits
+           here because this element wraps the routed page: it renders on every route
+           and cannot exist until Blazor has started, which is exactly what the marker
+           claims. *@
+        <article class="content px-4" data-testid="app-ready">
             @Body
         </article>
     </main>

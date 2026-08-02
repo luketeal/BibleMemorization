@@ -117,6 +117,51 @@ because two things a headless browser cannot do — reach the Bible API and use 
 microphone — are exactly the two the app is built around. The same mechanism gives
 the deployed site an offline demo.
 
+### Theming
+
+Colours live as custom properties at the top of `wwwroot/css/app.css`, in two tiers:
+`--c-*` holds the raw palette and is the only place a literal colour appears, and a
+semantic tier gives those colours roles. Rules reference the semantic tier, so a
+theme redefines about twenty primitives rather than restating the stylesheet. The
+tokens also map onto Bootstrap's own variables, which themes its components too.
+
+Two themes: **light** (the default) and **dark**. Light is simply the base values, so
+it needs no block of its own; dark redefines the primitives under
+`:root[data-theme="dark"]`, restating the whole semantic ramp because pale state
+fills turn to muck on a dark surface.
+
+Settings → Appearance offers *Match my device*, *Light* and *Dark*. Choosing to match
+the device stores nothing and falls back to `prefers-color-scheme`, which is also
+followed live if the device switches to night mode mid-session.
+
+The theme is chosen by an inline script in `index.html`, deliberately before the
+stylesheets are requested — anything later paints the wrong theme first and swaps it
+under the reader. It reads `localStorage`, falling back to the operating system's
+`prefers-color-scheme`. The stored value is checked against the known themes rather
+than trusted, since it can be hand-edited or left over from an older build.
+
+The preference lives in its own `localStorage` key rather than in `AppSettings`, so
+it is not carried in the exported `.save` file. It has to be readable before the
+WebAssembly runtime exists at all, and appearance is a property of the device you are
+reading on — restoring a library onto a phone at night should not relight the screen.
+
+Tokens must stay in `app.css`. Blazor's scoped-CSS rewriter appends the scope
+attribute to the last compound selector, so a `:root` block in a `.razor.css` would
+compile to `:root[b-abc123]` and match nothing — scoped files can read tokens but not
+declare them. Splitting them into their own stylesheet would also mean adding an
+entry to the cache-bust loop in `deploy.yml`.
+
+To compare themes, run the tour and open the contact sheet it writes:
+
+```bash
+E2E_THEME_TOUR=1 dotnet test tests/BibleMemorization.E2E --filter ThemeTour
+open artifacts/theme-shots/index.html
+```
+
+It photographs seven views under every theme, rows by view and columns by theme. It
+asserts nothing and is gated behind the environment variable, so it stays a design
+tool rather than CI weight.
+
 ### Adding a memory technique
 
 Implement `IMemoryTechnique`, register it in `Program.cs`. The practice view renders

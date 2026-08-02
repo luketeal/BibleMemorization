@@ -1,5 +1,468 @@
+/*
+   ---- Design tokens ----
+
+   Two tiers. Tier 1 (--c-*) is the raw palette: the only place a literal colour
+   appears. Tier 2 gives those colours roles, and is what every rule below actually
+   references. A theme therefore redefines about twenty Tier 1 values and inherits
+   every mapping, instead of restating the whole stylesheet.
+
+   These have to live in this file. Blazor's scoped-CSS rewriter appends the scope
+   attribute to the last compound selector, so a `:root` block inside a .razor.css
+   would compile to `:root[b-abc123]` and match nothing. Scoped stylesheets can read
+   these tokens, but they cannot declare them.
+
+   This file is also loaded after Bootstrap, which is what lets the bridge block
+   below override Bootstrap's own variables.
+*/
+:root {
+    /* Tier 1 — palette primitives */
+    --c-white: #fff;
+    --c-ink-1: #16191f;
+    --c-ink-2: #2b303a;
+    --c-ink-3: #4a5160;
+    --c-ink-4: #767e8d;
+    --c-surface-1: #ffffff;
+    --c-surface-2: #f7f8fa;
+    --c-line-1: #e3e6eb;
+    --c-line-2: #ccd1da;
+    --c-track: #e3e6eb;
+
+    --c-accent: #3b5bdb;
+    --c-accent-deep: #2f49af;
+    --c-accent-link: #2f49af;
+    --c-accent-focus: #748ffc;
+    --c-accent-wash: #fafbff;
+    --c-accent-tint: #edf0fe;
+    --c-accent-soft: #eef1fd;
+    --c-accent-soft-2: #dbe2fb;
+    --c-accent-line: #bac6f7;
+    --c-accent-line-2: #a3b3f4;
+
+    --c-ok: #2f9e68;
+    --c-ok-deep: #1e7a4d;
+    --c-ok-fill: #ddf3e7;
+    --c-ok-ink: #14563a;
+    --c-ok-outline: #2f9e68;
+
+    --c-bad: #d64550;
+    --c-bad-deep: #a92f39;
+    --c-bad-fill: #fbe4e6;
+    --c-bad-ink: #7d222a;
+    --c-bad-solid: #a92f39;
+
+    --c-warn: #d9a441;
+    --c-warn-fill: #fdf3dd;
+    --c-warn-line: #f2dfb0;
+    --c-warn-outline: #e6c576;
+    --c-warn-ink: #6b5312;
+
+    --c-live: #e07b39;
+    --c-live-rgb: 224, 123, 57;
+    --c-code: #c0397a;
+
+    /* Tier 2 — surfaces */
+    --surface-page: #f7f8fa;
+    --surface-raised: var(--c-surface-1);
+    --surface-sunken: var(--c-surface-2);
+    --surface-wash: var(--c-accent-wash);
+    --surface-notice: var(--c-accent-tint);
+    /* The sidebar. --surface-nav-image lets a theme layer a gradient over the fill;
+       themes that want a flat sidebar leave it as none. */
+    --surface-nav: #eef0f4;
+    --surface-nav-image: none;
+    --surface-nav-header: rgba(22, 25, 31, 0.05);
+    --surface-nav-active: #dbe2fb;
+    --surface-nav-hover: rgba(22, 25, 31, 0.05);
+    --surface-nav-control: rgba(22, 25, 31, 0.08);
+
+    /* Tier 2 — ink */
+    --ink-primary: var(--c-ink-1);
+    --ink-body: var(--c-ink-2);
+    --ink-secondary: var(--c-ink-3);
+    --ink-muted: var(--c-ink-4);
+    --ink-on-accent: var(--c-white);
+    --ink-on-nav: #4a5160;
+    --ink-on-nav-active: #2f49af;
+    --ink-code: var(--c-code);
+
+    /* Tier 2 — accent */
+    --accent: var(--c-accent);
+    --accent-rgb: 59, 91, 219;
+    --accent-ink: var(--c-accent-deep);
+    --accent-link: var(--c-accent-link);
+    --accent-soft: var(--c-accent-soft);
+    --accent-soft-hover: var(--c-accent-soft-2);
+    --accent-ring: var(--c-accent-focus);
+
+    /* Tier 2 — borders */
+    --border-subtle: var(--c-line-1);
+    --border-strong: var(--c-line-2);
+    --border-accent: var(--c-accent-line);
+    --border-accent-2: var(--c-accent-line-2);
+
+    /* Tier 2 — semantic states */
+    --ok-fill: var(--c-ok-fill);
+    --ok-rule: var(--c-ok);
+    --ok-ink: var(--c-ok-ink);
+    --ok-ink-strong: var(--c-ok-deep);
+    --bad-fill: var(--c-bad-fill);
+    --bad-rule: var(--c-bad);
+    --bad-ink: var(--c-bad-ink);
+    --bad-ink-strong: var(--c-bad-deep);
+    --warn-fill: var(--c-warn-fill);
+    --warn-rule: var(--c-warn-line);
+    --warn-ink: var(--c-warn-ink);
+
+    /* Tier 2 — shape */
+    --radius-sm: 0.2rem;
+    --radius-slot: 0.15rem;
+    --radius-md: 0.5rem;
+    --radius-chip: 0.25rem;
+    --shadow-card: 0 1px 2px rgba(22, 25, 31, 0.05);
+    --shadow-card-hover: 0 4px 12px rgba(59, 91, 219, 0.1);
+
+    /* Tier 2 — type */
+    --font-body: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    /* The passage itself. Split from --font-body so a theme can give scripture a
+       reading face without touching the interface. */
+    --font-reading: var(--font-body);
+    --measure-prose: 40rem;
+
+    /*
+       ---- The passage view ----
+
+       The app's hero surface, prefixed --pv-* so a theme can tune the reading
+       experience without disturbing the rest of the interface.
+    */
+    --pv-surface: var(--c-surface-1);
+    --pv-border: var(--border-subtle);
+    --pv-ink: var(--ink-primary);
+    --pv-font: var(--font-reading);
+    --pv-size: 1.25rem;
+    --pv-size-mobile: 1.1rem;
+    --pv-leading: 2.4;
+    --pv-leading-mobile: 2.2;
+    --pv-pad: 1.25rem;
+    --pv-pad-mobile: 0.75rem;
+    --pv-measure: 46rem;
+
+    /*
+       The markup supplies only a character count, as --pv-chars in an inline style;
+       the em-per-character figure lives here, next to the reading face it describes.
+       Keeping it in CSS is what lets a theme change the face without desynchronizing
+       every blank from the word behind it.
+    */
+    --pv-ch-width: 0.62em;
+    /* A typed answer needs more room per character than a static blank. */
+    --pv-ch-width-input: 0.72em;
+
+    /* Keep --pv-slot-height and --pv-slot-leading equal; see the slot rule below. */
+    --pv-slot-height: 1.7em;
+    --pv-slot-leading: 1.7em;
+    --pv-slot-pad-x: 0.2em;
+    --pv-slot-bg: var(--accent-soft);
+    --pv-slot-bg-hover: var(--accent-soft-hover);
+    --pv-slot-rule: var(--accent);
+    --pv-slot-rule-width: 2px;
+    --pv-hint-ink: var(--accent-ink);
+    --pv-hint-ring: var(--border-accent-2);
+    --pv-cue-ink: var(--accent-ink);
+    --pv-input-bg: var(--c-accent-wash);
+    --pv-input-bg-focus: var(--c-white);
+    --pv-input-ring: var(--accent);
+    --pv-word-hover-bg: var(--c-warn-line);
+    --pv-word-hover-ring: var(--c-warn-outline);
+    --pv-correct-fill: var(--ok-fill);
+    --pv-correct-rule: var(--ok-rule);
+    --pv-wrong-fill: var(--bad-fill);
+    --pv-wrong-rule: var(--bad-rule);
+    --pv-missing-fill: var(--warn-fill);
+    --pv-missing-ink: var(--warn-ink);
+
+    /* ---- Read-along ---- */
+    --ra-blank-height: 1.35em;
+    --ra-live-fill: var(--c-warn-line);
+    --ra-live-rule: var(--c-live);
+    --ra-halo-rgb: var(--c-live-rgb);
+    --ra-speaking-fill: var(--accent-soft-hover);
+    --ra-caret: var(--c-live);
+    --ra-pulse-duration: 1.4s;
+    --ra-phase-ink: var(--accent-ink);
+}
+
+/*
+   ---- Bootstrap bridge ----
+
+   Buttons, alerts, form controls and cards are Bootstrap's, so Bootstrap has to
+   follow the theme or half the interface stays the old colour. Mapping our tokens
+   onto its variables does that for every component at once, which is why there are
+   no per-component overrides below.
+
+   Bootstrap composes some colours itself, as rgba(var(--bs-primary-rgb), …) — the
+   focus ring is one. Anything bridged into a -rgb slot needs its channel triplet
+   supplying too, or those composed colours keep the old hue.
+
+   This block relies on app.css loading after bootstrap.min.css. Both declare at
+   :root, so equal specificity is broken by file order.
+*/
+:root {
+    --bs-body-bg: var(--surface-page);
+    --bs-body-color: var(--ink-primary);
+    --bs-secondary-color: var(--ink-muted);
+    --bs-emphasis-color: var(--ink-primary);
+    --bs-border-color: var(--border-subtle);
+    --bs-border-radius: var(--radius-md);
+    --bs-link-color: var(--accent-link);
+    --bs-link-hover-color: var(--accent-ink);
+    --bs-primary: var(--accent);
+    --bs-primary-rgb: var(--accent-rgb);
+    --bs-danger: var(--bad-rule);
+    --bs-success: var(--ok-rule);
+    --bs-warning: var(--c-warn);
+    --bs-focus-ring-color: var(--accent-ring);
+    --bs-body-font-family: var(--font-body);
+}
+
+/*
+   Buttons need their own pass. Bootstrap declares --bs-btn-bg and friends inside
+   .btn-primary itself with literal colours, so a :root override never reaches them —
+   the accent has to be handed to each variant where it is declared. Setting its
+   variables rather than its properties keeps Bootstrap's own hover, active and
+   disabled behaviour intact.
+*/
+.btn-primary {
+    --bs-btn-bg: var(--accent);
+    --bs-btn-border-color: var(--accent);
+    --bs-btn-color: var(--ink-on-accent);
+    --bs-btn-hover-bg: var(--accent-ink);
+    --bs-btn-hover-border-color: var(--accent-ink);
+    --bs-btn-hover-color: var(--ink-on-accent);
+    --bs-btn-active-bg: var(--accent-ink);
+    --bs-btn-active-border-color: var(--accent-ink);
+    --bs-btn-active-color: var(--ink-on-accent);
+    --bs-btn-disabled-bg: var(--accent);
+    --bs-btn-disabled-border-color: var(--accent);
+    --bs-btn-disabled-color: var(--ink-on-accent);
+}
+
+.btn-outline-primary {
+    --bs-btn-color: var(--accent-ink);
+    --bs-btn-border-color: var(--accent);
+    --bs-btn-hover-bg: var(--accent);
+    --bs-btn-hover-border-color: var(--accent);
+    --bs-btn-hover-color: var(--ink-on-accent);
+    --bs-btn-active-bg: var(--accent);
+    --bs-btn-active-border-color: var(--accent);
+    --bs-btn-active-color: var(--ink-on-accent);
+    --bs-btn-disabled-color: var(--accent-ink);
+    --bs-btn-disabled-border-color: var(--accent);
+}
+
+.btn-outline-secondary {
+    --bs-btn-color: var(--ink-secondary);
+    --bs-btn-border-color: var(--border-strong);
+    --bs-btn-hover-bg: var(--ink-secondary);
+    --bs-btn-hover-border-color: var(--ink-secondary);
+    --bs-btn-hover-color: var(--surface-raised);
+    --bs-btn-active-bg: var(--ink-secondary);
+    --bs-btn-active-border-color: var(--ink-secondary);
+    --bs-btn-active-color: var(--surface-raised);
+    --bs-btn-disabled-color: var(--ink-muted);
+    --bs-btn-disabled-border-color: var(--border-strong);
+}
+
+.btn-outline-danger {
+    --bs-btn-color: var(--bad-ink-strong);
+    --bs-btn-border-color: var(--bad-rule);
+    --bs-btn-hover-bg: var(--bad-rule);
+    --bs-btn-hover-border-color: var(--bad-rule);
+    --bs-btn-hover-color: var(--ink-on-accent);
+    --bs-btn-active-bg: var(--bad-rule);
+    --bs-btn-active-border-color: var(--bad-rule);
+    --bs-btn-active-color: var(--ink-on-accent);
+    --bs-btn-disabled-color: var(--bad-ink-strong);
+    --bs-btn-disabled-border-color: var(--bad-rule);
+}
+
+/* Alerts, same reason: their fills are declared per variant, not at :root. */
+.alert-warning {
+    --bs-alert-bg: var(--warn-fill);
+    --bs-alert-border-color: var(--warn-rule);
+    --bs-alert-color: var(--warn-ink);
+}
+
+.alert-danger {
+    --bs-alert-bg: var(--bad-fill);
+    --bs-alert-border-color: var(--bad-rule);
+    --bs-alert-color: var(--bad-ink);
+}
+
+.alert-success {
+    --bs-alert-bg: var(--ok-fill);
+    --bs-alert-border-color: var(--ok-rule);
+    --bs-alert-color: var(--ok-ink);
+}
+
+.alert-info {
+    --bs-alert-bg: var(--surface-notice);
+    --bs-alert-border-color: var(--border-accent);
+    --bs-alert-color: var(--accent-ink);
+}
+
+/* Form controls: Bootstrap's own dark treatment does not know about our surfaces. */
+.form-control,
+.form-select {
+    background-color: var(--surface-raised);
+    border-color: var(--border-strong);
+    color: var(--ink-primary);
+}
+
+.form-control:focus,
+.form-select:focus {
+    background-color: var(--surface-raised);
+    border-color: var(--accent);
+    color: var(--ink-primary);
+}
+
+.form-control::placeholder {
+    color: var(--ink-muted);
+}
+
+/* Ticked boxes and slider thumbs are literal in Bootstrap too, and the settings page
+   is mostly made of them. */
+.form-check-input:checked {
+    background-color: var(--accent);
+    border-color: var(--accent);
+}
+
+.form-check-input {
+    background-color: var(--surface-raised);
+    border-color: var(--border-strong);
+}
+
+.form-range {
+    --bs-form-range-thumb-bg: var(--accent);
+    --bs-form-range-thumb-active-bg: var(--accent-ink);
+}
+
+.form-range::-webkit-slider-thumb { background-color: var(--accent); }
+.form-range::-moz-range-thumb { background-color: var(--accent); }
+.form-range::-webkit-slider-runnable-track { background-color: var(--border-strong); }
+.form-range::-moz-range-track { background-color: var(--border-strong); }
+
+/*
+   A slider's focus ring is drawn on the thumb, not on the input, so the shared focus
+   rule below cannot reach it — Bootstrap's own white halo and default blue survive
+   there otherwise.
+
+   Kept as two rules on purpose. A browser that does not recognise one of these vendor
+   pseudo-elements discards the whole rule it appears in, so grouping the selectors
+   would silently disable both. Note that Chromium reports no computed style for
+   ::-webkit-slider-thumb, so FocusRingTests cannot see these — they are verified by eye.
+*/
+.form-range:focus::-webkit-slider-thumb {
+    box-shadow: 0 0 0 0.1rem var(--surface-page), 0 0 0 0.25rem var(--accent-ring);
+}
+
+.form-range:focus::-moz-range-thumb {
+    box-shadow: 0 0 0 0.1rem var(--surface-page), 0 0 0 0.25rem var(--accent-ring);
+}
+
+/*
+   ---- Themes ----
+
+   The light theme is simply the values above, so data-theme="light" matches no block
+   of its own and needs none. Dark redefines primitives; the semantic
+   tier maps them through, so nothing below this point knows which theme is active.
+   The attribute is set by the inline script in index.html before the first paint.
+
+   The selector is :root[data-theme=…] rather than bare [data-theme=…] so it outranks
+   Bootstrap's own [data-bs-theme=dark] block on specificity rather than on file order.
+*/
+
+/*
+   Dark — for practising at night. The pastel state fills of a light theme turn to
+   muck on a dark surface, so the whole semantic ramp is restated: deep fills with
+   bright ink rather than pale fills with dark ink. The passage also gets a step more
+   size and leading, since low-light reading wants the extra room.
+*/
+:root[data-theme="dark"] {
+    --c-white: #ffffff;
+    --c-ink-1: #e8eaef;
+    --c-ink-2: #d2d6de;
+    --c-ink-3: #a8aebb;
+    --c-ink-4: #858c9a;
+    --c-surface-1: #1b1e25;
+    --c-surface-2: #21242c;
+    --c-line-1: #2e333d;
+    --c-line-2: #3c424e;
+    --c-track: #2e333d;
+
+    --c-accent: #7aa2f7;
+    --c-accent-deep: #a6c0fa;
+    --c-accent-link: #8fb0f8;
+    --c-accent-focus: #a6c0fa;
+    --c-accent-wash: #1e222b;
+    --c-accent-tint: #1c2433;
+    --c-accent-soft: #222a3a;
+    --c-accent-soft-2: #2c3852;
+    --c-accent-line: #38445e;
+    --c-accent-line-2: #465573;
+
+    --c-ok: #3fa87a;
+    --c-ok-deep: #6fd3a5;
+    --c-ok-fill: #16301f;
+    --c-ok-ink: #7fdcae;
+    --c-ok-outline: #3fa87a;
+    --c-bad: #e5646d;
+    --c-bad-deep: #f38b93;
+    --c-bad-fill: #351a1e;
+    --c-bad-ink: #f5a2a8;
+    --c-bad-solid: #a03038;
+    --c-warn: #d9a441;
+    --c-warn-fill: #302713;
+    --c-warn-line: #4a3a18;
+    --c-warn-outline: #7a5f28;
+    --c-warn-ink: #edcb84;
+    --c-live: #f0913f;
+    --c-live-rgb: 240, 145, 63;
+    --c-code: #e88bb8;
+
+    --accent-rgb: 122, 162, 247;
+    --surface-page: #14161b;
+    --surface-raised: var(--c-surface-1);
+    --surface-sunken: #191c22;
+
+    /* Barely distinct from the page: at night the nav should not glow. */
+    --surface-nav: #101216;
+    --surface-nav-image: none;
+    --surface-nav-header: rgba(0, 0, 0, 0.3);
+    --surface-nav-active: #2c3852;
+    --surface-nav-hover: rgba(255, 255, 255, 0.05);
+    --surface-nav-control: rgba(255, 255, 255, 0.1);
+    --ink-on-nav: #99a1b0;
+    --ink-on-nav-active: #dce4f5;
+    --ink-on-accent: #10131a;
+
+    --pv-surface: #1b1e25;
+    --pv-size: 1.35rem;
+    --pv-leading: 2.5;
+    --pv-slot-bg: #242d3f;
+    --pv-input-bg: #1e222b;
+    --pv-input-bg-focus: #232833;
+    --pv-word-hover-bg: #33405c;
+    --pv-word-hover-ring: #465573;
+    --pv-missing-ink: #edcb84;
+
+    --ra-live-fill: #4a3a18;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-card-hover: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+
 html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: var(--font-body);
+    background-color: var(--surface-page);
+    color: var(--ink-primary);
 }
 
 h1:focus {
@@ -7,25 +470,28 @@ h1:focus {
 }
 
 a, .btn-link {
-    color: #0071c1;
+    color: var(--accent-link);
 }
 
-.btn-primary {
-    color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+/*
+   A visible ring on everything focusable. The inner halo separates the ring from
+   the control beneath it, so it stays legible on a dark surface as well as a light
+   one.
+*/
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus,
+.form-control:focus, .form-select:focus, .form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem var(--surface-page), 0 0 0 0.25rem var(--accent-ring);
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
+/* Sized to stand on its own. This used to sit beneath a 3.5rem bar, so 1.1rem was
+   enough; with the bar gone the first heading would otherwise butt against the top
+   of the viewport. */
 .content {
-    padding-top: 1.1rem;
+    padding-top: 2rem;
 }
 
 .valid.modified:not([type=checkbox]) {
-    outline: 1px solid #26b050;
+    outline: 1px solid var(--c-ok-outline);
 }
 
 .invalid {
@@ -36,9 +502,17 @@ a, .btn-link {
     color: red;
 }
 
+/*
+   Deliberately outside the theme: color-scheme pins this box to light, so its
+   colours are literals rather than tokens. They have to be stated rather than
+   inherited — under a dark theme the inherited text would be pale on pale yellow,
+   leaving the error message unreadable in the one situation where reading it
+   matters.
+*/
 #blazor-error-ui {
     color-scheme: light only;
     background: lightyellow;
+    color: #212529;
     bottom: 0;
     box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
     box-sizing: border-box;
@@ -55,6 +529,11 @@ a, .btn-link {
         position: absolute;
         right: 0.75rem;
         top: 0.5rem;
+    }
+
+    /* Literal, for the same reason as the banner itself. */
+    #blazor-error-ui a {
+        color: #0a58ca;
     }
 
 .blazor-error-boundary {
@@ -78,14 +557,14 @@ a, .btn-link {
 
     .loading-progress circle {
         fill: none;
-        stroke: #e0e0e0;
+        stroke: var(--c-track);
         stroke-width: 0.6rem;
         transform-origin: 50% 50%;
         transform: rotate(-90deg);
     }
 
         .loading-progress circle:last-child {
-            stroke: #1b6ec2;
+            stroke: var(--accent);
             stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
             transition: stroke-dasharray 0.05s ease-in-out;
         }
@@ -102,7 +581,7 @@ a, .btn-link {
     }
 
 code {
-    color: #c02d76;
+    color: var(--ink-code);
 }
 
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
@@ -123,31 +602,32 @@ code {
 
 .home-card {
     display: block;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--border-subtle);
     border-radius: 0.5rem;
     padding: 1rem 1.25rem;
-    background: #fff;
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-card);
     text-decoration: none;
     color: inherit;
     transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .home-card:hover {
-    border-color: #0d6efd;
-    box-shadow: 0 2px 8px rgba(13, 110, 253, 0.12);
+    border-color: var(--accent);
+    box-shadow: var(--shadow-card-hover);
     text-decoration: none;
 }
 
-.home-card h2 { color: #0a58ca; }
+.home-card h2 { color: var(--accent-ink); }
 
 .home-notes {
     margin-top: 2rem;
-    max-width: 40rem;
+    max-width: var(--measure-prose);
 }
 
 .home-notes h2 { font-size: 1.05rem; }
 
-.home-notes ul { color: #495057; padding-left: 1.1rem; }
+.home-notes ul { color: var(--ink-secondary); padding-left: 1.1rem; }
 
 .home-notes li { margin-bottom: 0.5rem; }
 
@@ -158,12 +638,7 @@ code {
 
 .home-card p {
     margin: 0;
-    color: #495057;
-}
-
-.build-tag {
-    font-weight: 600;
-    color: #495057;
+    color: var(--ink-secondary);
 }
 
 /* ---- Layout helpers ---- */
@@ -178,13 +653,13 @@ code {
 .toolbar-spacer { flex: 1 1 auto; }
 
 .empty-state {
-    color: #6c757d;
+    color: var(--ink-muted);
     font-style: italic;
     padding: 2rem 0;
 }
 
 .field-hint {
-    color: #6c757d;
+    color: var(--ink-muted);
     font-size: 0.875rem;
     margin-top: 0.25rem;
 }
@@ -192,8 +667,8 @@ code {
 .form-group { margin-bottom: 1rem; }
 
 .demo-banner {
-    background: #fff3cd;
-    border: 1px solid #ffe69c;
+    background: var(--warn-fill);
+    border: 1px solid var(--warn-rule);
     border-radius: 0.5rem;
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
@@ -215,10 +690,11 @@ code {
     gap: 1rem;
     justify-content: space-between;
     align-items: flex-start;
-    border: 1px solid #dee2e6;
-    border-radius: 0.5rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
     padding: 1rem;
-    background: #fff;
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-card);
 }
 
 .passage-card-main { min-width: 0; }
@@ -229,14 +705,14 @@ code {
 }
 
 .passage-meta {
-    color: #6c757d;
+    color: var(--ink-muted);
     font-size: 0.85rem;
     margin: 0 0 0.5rem;
 }
 
 .passage-preview {
     margin: 0;
-    color: #343a40;
+    color: var(--ink-body);
 }
 
 .passage-card-actions {
@@ -247,8 +723,8 @@ code {
 }
 
 .import-prompt {
-    border: 1px solid #b6d4fe;
-    background: #e7f1ff;
+    border: 1px solid var(--border-accent);
+    background: var(--surface-notice);
     border-radius: 0.5rem;
     padding: 1rem;
     margin-bottom: 1rem;
@@ -264,20 +740,26 @@ code {
 
 .dictation-status {
     margin-left: 0.75rem;
-    color: #6c757d;
+    color: var(--ink-muted);
 }
 
 /* ---- Settings ---- */
 .settings-section {
-    border-top: 1px solid #dee2e6;
+    border-top: 1px solid var(--border-subtle);
     padding: 1.25rem 0;
-    max-width: 40rem;
+    max-width: var(--measure-prose);
 }
 
 .settings-section h2 { font-size: 1.15rem; }
 
-.danger-zone h2 { color: #b02a37; }
+.danger-zone h2 { color: var(--bad-ink-strong); }
 
+/*
+   The sidebar breakpoint. Media queries cannot read custom properties, so this value
+   is repeated rather than tokenized — it also appears once more below, and as 640.98px
+   / 641px in Layout/MainLayout.razor.css and Layout/NavMenu.razor.css. Change it in
+   all five places or not at all.
+*/
 @media (max-width: 640px) {
     .passage-card { flex-direction: column; }
     .passage-card-actions { flex-direction: row; }
@@ -292,10 +774,11 @@ code {
 }
 
 .import-panel {
-    border: 1px solid #dee2e6;
-    border-radius: 0.5rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
     padding: 1rem;
-    background: #fff;
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-card);
 }
 
 .import-panel h2 {
@@ -304,8 +787,8 @@ code {
 }
 
 .preview-panel {
-    border: 1px solid #b6d4fe;
-    background: #f8fbff;
+    border: 1px solid var(--border-accent);
+    background: var(--surface-wash);
     border-radius: 0.5rem;
     padding: 1rem 1.25rem;
     margin-top: 1rem;
@@ -316,10 +799,10 @@ code {
 .preview-text {
     font-size: 1.1rem;
     line-height: 1.7;
-    border-left: 3px solid #b6d4fe;
+    border-left: 3px solid var(--border-accent);
     padding-left: 1rem;
     margin: 1rem 0;
-    color: #212529;
+    color: var(--ink-primary);
 }
 
 .verse-range {
@@ -334,7 +817,7 @@ code {
     width: auto;
     padding: 0.25rem 1.75rem 0.25rem 0.5rem;
     margin-left: 0.35rem;
-    border: 1px solid #ced4da;
+    border: 1px solid var(--border-strong);
     border-radius: 0.25rem;
 }
 
@@ -349,7 +832,7 @@ code {
 .mode-tabs {
     display: flex;
     gap: 0.25rem;
-    border-bottom: 2px solid #dee2e6;
+    border-bottom: 2px solid var(--border-subtle);
     margin: 1rem 0;
 }
 
@@ -359,31 +842,32 @@ code {
     border-bottom: 3px solid transparent;
     padding: 0.5rem 1rem;
     font-size: 1rem;
-    color: #495057;
+    color: var(--ink-secondary);
     cursor: pointer;
     margin-bottom: -2px;
 }
 
 .mode-tab.active {
-    color: #0d6efd;
-    border-bottom-color: #0d6efd;
+    color: var(--accent);
+    border-bottom-color: var(--accent);
     font-weight: 600;
 }
 
 .passage-view {
-    font-size: 1.25rem;
-    line-height: 2.4;
-    padding: 1.25rem;
-    border: 1px solid #dee2e6;
+    font-size: var(--pv-size);
+    line-height: var(--pv-leading);
+    padding: var(--pv-pad);
+    border: 1px solid var(--pv-border);
     border-radius: 0.5rem;
-    background: #fff;
+    background: var(--pv-surface);
+    box-shadow: var(--shadow-card);
     white-space: pre-wrap;
-    max-width: 46rem;
+    max-width: var(--pv-measure);
 }
 
 .pv-word { white-space: nowrap; }
 
-.pv-punct { color: #212529; }
+.pv-punct { color: var(--pv-ink); }
 
 .pv-visible,
 .pv-visible-static {
@@ -391,8 +875,8 @@ code {
     border: none;
     padding: 0 0.05em;
     font: inherit;
-    color: #212529;
-    border-radius: 0.2rem;
+    color: var(--pv-ink);
+    border-radius: var(--radius-sm);
 }
 
 .pv-visible { cursor: default; }
@@ -400,8 +884,8 @@ code {
 .interactive .pv-visible { cursor: pointer; }
 
 .interactive .pv-visible:hover {
-    background: #ffe69c;
-    outline: 2px solid #ffda6a;
+    background: var(--pv-word-hover-bg);
+    outline: 2px solid var(--pv-word-hover-ring);
 }
 
 /* A blank keeps the width of the word it hides, so its length still cues recall. */
@@ -412,6 +896,10 @@ code {
    and the two end up different sizes with their underlines at different heights.
    The explicit line-height also gives an empty blank a real baseline, which an empty
    inline-block otherwise lacks.
+
+   Keep all four selectors on this one rule, and keep the height and line-height
+   equal. An E2E test asserts a blank and a hint are the same height with their
+   underlines level to within a pixel, and that only holds while both come from here.
 */
 .pv-slot,
 .pv-blank,
@@ -419,23 +907,24 @@ code {
 .pv-input {
     display: inline-block;
     box-sizing: border-box;
-    height: 1.7em;
-    line-height: 1.7em;
-    padding: 0 0.2em;
+    height: var(--pv-slot-height);
+    line-height: var(--pv-slot-leading);
+    padding: 0 var(--pv-slot-pad-x);
     vertical-align: middle;
     border: none;
-    border-bottom: 2px solid #0d6efd;
-    border-radius: 0.15rem 0.15rem 0 0;
-    background: #eef4ff;
+    border-bottom: var(--pv-slot-rule-width) solid var(--pv-slot-rule);
+    border-radius: var(--radius-slot) var(--radius-slot) 0 0;
+    background: var(--pv-slot-bg);
 }
 
 .pv-blank {
     cursor: default;
+    width: calc(var(--pv-chars) * var(--pv-ch-width));
 }
 
 .interactive .pv-blank { cursor: pointer; }
 
-.interactive .pv-blank:hover { background: #cfe2ff; }
+.interactive .pv-blank:hover { background: var(--pv-slot-bg-hover); }
 
 /*
    An initial standing in for a whole word. It is widened to the word's own length
@@ -445,17 +934,19 @@ code {
 .pv-hint {
     /* A button so the initial can be tapped away, but it should read as text. */
     font: inherit;
-    color: #0a58ca;
+    color: var(--pv-hint-ink);
     font-weight: 600;
     text-align: left;
     cursor: default;
+    /* min-width, not width, so a hint longer than expected is never clipped. */
+    min-width: calc(var(--pv-chars) * var(--pv-ch-width));
 }
 
 .interactive .pv-hint { cursor: pointer; }
 
 .interactive .pv-hint:hover {
-    background: #cfe2ff;
-    outline: 2px solid #9ec5fe;
+    background: var(--pv-slot-bg-hover);
+    outline: 2px solid var(--pv-hint-ring);
 }
 
 /*
@@ -465,46 +956,47 @@ code {
 .pv-cue {
     display: inline-block;
     font-weight: 700;
-    color: #0a58ca;
+    color: var(--pv-cue-ink);
     margin-right: 0.1em;
 }
 
 .pv-input {
     font: inherit;
-    background: #f8fbff;
+    background: var(--pv-input-bg);
     text-align: left;
+    width: calc(var(--pv-chars) * var(--pv-ch-width-input));
 }
 
 .pv-input:focus {
-    outline: 2px solid #0d6efd;
-    background: #fff;
+    outline: 2px solid var(--pv-input-ring);
+    background: var(--pv-input-bg-focus);
 }
 
-.pv-input-correct { border-bottom-color: #198754; background: #d1e7dd; }
+.pv-input-correct { border-bottom-color: var(--pv-correct-rule); background: var(--pv-correct-fill); }
 
-.pv-input-wrong { border-bottom-color: #dc3545; background: #f8d7da; }
+.pv-input-wrong { border-bottom-color: var(--pv-wrong-rule); background: var(--pv-wrong-fill); }
 
 .pv-correct .pv-visible,
-.pv-correct .pv-visible-static { background: #d1e7dd; }
+.pv-correct .pv-visible-static { background: var(--pv-correct-fill); }
 
 .pv-wrong .pv-visible,
-.pv-wrong .pv-visible-static { background: #f8d7da; text-decoration: underline wavy #dc3545; }
+.pv-wrong .pv-visible-static { background: var(--pv-wrong-fill); text-decoration: underline wavy var(--pv-wrong-rule); }
 
 .pv-missing .pv-visible,
-.pv-missing .pv-visible-static { background: #fff3cd; color: #664d03; }
+.pv-missing .pv-visible-static { background: var(--pv-missing-fill); color: var(--pv-missing-ink); }
 
 /* ---- Results ---- */
 .results-panel {
     margin-top: 1.5rem;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--border-subtle);
     border-radius: 0.5rem;
     padding: 1rem 1.25rem;
-    background: #fbfbfb;
+    background: var(--surface-sunken);
 }
 
 .results-panel h2 { font-size: 1.25rem; }
 
-.results-perfect { color: #146c43; font-weight: 600; }
+.results-perfect { color: var(--ok-ink-strong); font-weight: 600; }
 
 .results-legend {
     list-style: none;
@@ -513,7 +1005,7 @@ code {
     padding: 0;
     margin: 0.75rem 0;
     font-size: 0.85rem;
-    color: #495057;
+    color: var(--ink-secondary);
     flex-wrap: wrap;
 }
 
@@ -526,28 +1018,28 @@ code {
     margin-right: 0.25rem;
 }
 
-.results-legend .pv-correct { background: #d1e7dd; }
-.results-legend .pv-wrong { background: #f8d7da; }
-.results-legend .pv-missing { background: #fff3cd; }
+.results-legend .pv-correct { background: var(--pv-correct-fill); }
+.results-legend .pv-wrong { background: var(--pv-wrong-fill); }
+.results-legend .pv-missing { background: var(--pv-missing-fill); }
 
 .history-panel { margin-top: 1.5rem; max-width: 30rem; }
 
 .history-panel h2 { font-size: 1.05rem; }
 
-.history-panel ul { padding-left: 1.1rem; color: #495057; }
+.history-panel ul { padding-left: 1.1rem; color: var(--ink-secondary); }
 
 /* ---- Spoken recall ---- */
-.listening-indicator { color: #b02a37; font-weight: 600; }
+.listening-indicator { color: var(--bad-ink-strong); font-weight: 600; }
 
 .heard-text {
-    border-left: 3px solid #ced4da;
+    border-left: 3px solid var(--border-strong);
     padding-left: 1rem;
-    color: #495057;
+    color: var(--ink-secondary);
     font-style: italic;
 }
 
 @media (max-width: 640px) {
-    .passage-view { font-size: 1.1rem; line-height: 2.2; padding: 0.75rem; }
+    .passage-view { font-size: var(--pv-size-mobile); line-height: var(--pv-leading-mobile); padding: var(--pv-pad-mobile); }
 }
 
 /* ---- Read-along ---- */
@@ -555,7 +1047,7 @@ code {
 
 .read-along-phase {
     font-weight: 600;
-    color: #0a58ca;
+    color: var(--ra-phase-ink);
 }
 
 .read-along-view { margin-top: 0.75rem; }
@@ -563,11 +1055,12 @@ code {
 /* An unanswered blank, sized to the word it hides, as in the study view. */
 .read-along-view .ra-blank {
     display: inline-block;
-    height: 1.35em;
+    height: var(--ra-blank-height);
     vertical-align: baseline;
-    border-bottom: 3px solid #0d6efd;
-    background: #eef4ff;
+    border-bottom: 3px solid var(--pv-slot-rule);
+    background: var(--pv-slot-bg);
     border-radius: 0.15rem 0.15rem 0 0;
+    min-width: calc(var(--pv-chars) * var(--pv-ch-width));
 }
 
 .read-along-view .ra-fill {
@@ -580,28 +1073,29 @@ code {
 
 /* Words appearing as they are spoken, before the answer is judged. */
 .read-along-view .ra-fill-live {
-    background: #fff3cd;
-    border-bottom-color: #ffc107;
-    color: #664d03;
+    background: var(--warn-fill);
+    border-bottom-color: var(--c-warn);
+    color: var(--warn-ink);
     font-style: italic;
-    min-height: 1.35em;
+    min-height: var(--ra-blank-height);
+    min-width: calc(var(--pv-chars) * var(--pv-ch-width));
 }
 
 .read-along-view .ra-fill-correct {
-    background: #d1e7dd;
-    border-bottom-color: #198754;
-    color: #0f5132;
+    background: var(--ok-fill);
+    border-bottom-color: var(--ok-rule);
+    color: var(--ok-ink);
 }
 
 .read-along-view .ra-fill-missed {
-    background: #f8d7da;
-    border-bottom-color: #dc3545;
-    color: #842029;
+    background: var(--bad-fill);
+    border-bottom-color: var(--bad-rule);
+    color: var(--bad-ink);
 }
 
 /* The run being read aloud, so the eye can follow the voice. */
 .read-along-view .ra-speaking .pv-visible-static {
-    background: #cfe2ff;
+    background: var(--ra-speaking-fill);
     border-radius: 0.2rem;
 }
 
@@ -612,15 +1106,15 @@ code {
 */
 .read-along-view .ra-awaiting .ra-blank,
 .read-along-view .ra-fill-live {
-    background: #ffe69c;
-    border-bottom: 3px solid #fd7e14;
-    box-shadow: 0 0 0 4px rgba(253, 126, 20, 0.3);
-    animation: ra-pulse 1.4s ease-in-out infinite;
+    background: var(--ra-live-fill);
+    border-bottom: 3px solid var(--ra-live-rule);
+    box-shadow: 0 0 0 4px rgba(var(--ra-halo-rgb), 0.3);
+    animation: ra-pulse var(--ra-pulse-duration) ease-in-out infinite;
 }
 
 @keyframes ra-pulse {
-    0%, 100% { box-shadow: 0 0 0 4px rgba(253, 126, 20, 0.3); }
-    50% { box-shadow: 0 0 0 7px rgba(253, 126, 20, 0.12); }
+    0%, 100% { box-shadow: 0 0 0 4px rgba(var(--ra-halo-rgb), 0.3); }
+    50% { box-shadow: 0 0 0 7px rgba(var(--ra-halo-rgb), 0.12); }
 }
 
 /* A blinking cursor in the live blank, so an empty one still reads as "your turn". */
@@ -629,7 +1123,7 @@ code {
     width: 2px;
     height: 1.1em;
     vertical-align: text-bottom;
-    background: #fd7e14;
+    background: var(--ra-caret);
     animation: ra-blink 1s step-end infinite;
 }
 
@@ -659,8 +1153,8 @@ code {
     margin-bottom: 0.25rem;
 }
 
-.read-along-log .ra-correct { background: #d1e7dd; }
+.read-along-log .ra-correct { background: var(--ok-fill); }
 
-.read-along-log .ra-missed { background: #f8d7da; }
+.read-along-log .ra-missed { background: var(--bad-fill); }
 
 .read-along-done { font-weight: 600; }

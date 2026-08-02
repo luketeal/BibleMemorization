@@ -179,11 +179,15 @@
         return IsBeingAnswered(tokenIndex) ? "ra-awaiting" : null;
     }
 
-    /// <summary>Sizes an unanswered blank to the word it hides, as the study view does.</summary>
+    /// <summary>
+    /// Sizes an unanswered blank to the word it hides, as the study view does. Emits a
+    /// character count and lets CSS apply the reading face's em-per-character
+    /// (<c>--pv-ch-width</c>), so the two views cannot drift apart.
+    /// </summary>
     private static string BlankStyle(Token token)
     {
-        var width = Math.Max(token.Word.Length, 2);
-        return string.Create(System.Globalization.CultureInfo.InvariantCulture, $"min-width: {width * 0.62m:0.##}em");
+        var chars = Math.Max(token.Word.Length, 2);
+        return string.Create(System.Globalization.CultureInfo.InvariantCulture, $"--pv-chars: {chars}");
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

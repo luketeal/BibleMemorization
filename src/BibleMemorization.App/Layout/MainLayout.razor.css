@@ -6,49 +6,33 @@
 
 main {
     flex: 1;
+    background-color: var(--surface-page);
 }
 
+/*
+   Scoped stylesheets can read the tokens declared in css/app.css but cannot declare
+   any of their own: Blazor's rewriter appends this file's scope attribute to the last
+   compound selector, so a :root block here would compile to :root[b-…] and match
+   nothing. Every colour below therefore comes from app.css.
+
+   --surface-nav-image lets a theme layer a gradient over the fill. Themes that want a
+   flat sidebar set it to none.
+*/
 .sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
-}
-
-.top-row {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #d6d5d5;
-    justify-content: flex-end;
-    height: 3.5rem;
-    display: flex;
-    align-items: center;
-}
-
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        white-space: nowrap;
-        margin-left: 1.5rem;
-        text-decoration: none;
-    }
-
-    .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
-        text-decoration: underline;
-    }
-
-    .top-row ::deep a:first-child {
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-@media (max-width: 640.98px) {
-    .top-row {
-        justify-content: space-between;
-    }
-
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        margin-left: 0;
-    }
+    background-color: var(--surface-nav);
+    background-image: var(--surface-nav-image, none);
 }
 
 @media (min-width: 641px) {
+    /*
+       The sidebar sticks at 100vh so the nav stays put on a long page, which leaves
+       the rest of its column unpainted. Colouring the row and letting main paint over
+       its own share fills that gap — visible on any theme whose nav and page differ,
+       and glaring on a dark one.
+    */
     .page {
         flex-direction: row;
+        background-color: var(--surface-nav);
     }
 
     .sidebar {
@@ -58,19 +42,7 @@ main {
         top: 0;
     }
 
-    .top-row {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-    }
-
-    .top-row.auth ::deep a:first-child {
-        flex: 1;
-        text-align: right;
-        width: 0;
-    }
-
-    .top-row, article {
+    article {
         padding-left: 2rem !important;
         padding-right: 1.5rem !important;
     }

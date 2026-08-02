@@ -6,6 +6,86 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bible Memorization</title>
     <base href="/" />
+    <!--
+        Resolve the theme before the stylesheets are even requested.
+
+        This has to be a classic inline script, and it has to sit here. A module or a
+        deferred script runs after parsing, which is after the first paint — the user
+        would read a page in the wrong theme and watch it change under them. The
+        library is loaded through a JS module import after the whole WebAssembly
+        runtime downloads, so it is far too late to ask; localStorage is synchronous
+        and available right here.
+    -->
+    <script>
+        (function () {
+            var THEMES = ['light', 'dark'];
+            var KEY = 'biblememorization.theme';
+            var DARK = '(prefers-color-scheme: dark)';
+
+            function stored() {
+                try {
+                    return window.localStorage.getItem(KEY);
+                } catch (e) {
+                    // Private browsing modes throw on access rather than returning null.
+                    return null;
+                }
+            }
+
+            function prefersDark() {
+                try {
+                    return window.matchMedia && window.matchMedia(DARK).matches;
+                } catch (e) {
+                    return false;
+                }
+            }
+
+            // What the device asks for, ignoring any stored choice. This is what
+            // "match my device" in Settings means.
+            function system() {
+                return prefersDark() ? 'dark' : 'light';
+            }
+
+            // The stored value is checked against THEMES rather than trusted: it can
+            // be hand-edited, and it can be left over from a build that named its
+            // themes differently.
+            function resolve() {
+                var choice = stored();
+                return THEMES.indexOf(choice) >= 0 ? choice : system();
+            }
+
+            function apply(theme) {
+                var isDark = theme === 'dark';
+                var root = document.documentElement;
+                root.setAttribute('data-theme', theme);
+                // Bootstrap 5.3 ships its own dark treatment; this hands form controls,
+                // dropdowns and native scrollbars over to it for free.
+                root.setAttribute('data-bs-theme', isDark ? 'dark' : 'light');
+                // Paints the browser's own canvas before any stylesheet arrives, which
+                // is what removes the white frame at the very start of a dark load.
+                root.style.colorScheme = isDark ? 'dark' : 'light';
+            }
+
+            window.__bmTheme = {
+                THEMES: THEMES, KEY: KEY, resolve: resolve, apply: apply, system: system
+            };
+            apply(resolve());
+
+            // Follow the device when it changes, but only while no explicit choice is
+            // stored — otherwise someone's own setting would be overridden the moment
+            // their machine switched to night mode. This lives here rather than in
+            // js/theme.js because a module listener only runs if something imports the
+            // module, and on most pages nothing does.
+            try {
+                window.matchMedia(DARK).addEventListener('change', function () {
+                    if (THEMES.indexOf(stored()) < 0) {
+                        apply(resolve());
+                    }
+                });
+            } catch (e) {
+                // No matchMedia, or no listener support. The theme is fixed for the session.
+            }
+        })();
+    </script>
     <link rel="preload" id="webassembly" />
     <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="css/app.css" />

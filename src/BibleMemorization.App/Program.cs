@@ -65,6 +65,10 @@ builder.Services.AddSingleton<IStorageProvider>(sp => sp.GetRequiredService<AppM
     : sp.GetRequiredService<LocalStorageProvider>());
 builder.Services.AddSingleton<IStorageProvider>(sp => sp.GetRequiredService<SaveFileProvider>());
 
+// Not demo-conditional: the theme is a property of the browser, not of the library,
+// so there is nothing to fake.
+builder.Services.AddSingleton<ThemeService>();
+
 builder.Services.AddSingleton<StorageProviderRegistry>();
 builder.Services.AddSingleton<LibraryService>();
 
