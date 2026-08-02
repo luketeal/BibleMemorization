@@ -132,9 +132,24 @@ public abstract class E2ETestBase : IAsyncLifetime
         return Sanitize(testClass.Name);
     }
 
+    /// <summary>
+    /// Makes a name safe as a filename on every filesystem, not merely on this one.
+    ///
+    /// Path.GetInvalidFileNameChars() is platform-specific, and on Linux it is only NUL
+    /// and the separator — so a theory named `Case(id: "x")` writes happily here and
+    /// then fails the CI artifact upload, which enforces the stricter NTFS-safe set.
+    /// The list below is that set, so a run cannot pass locally and break in CI.
+    /// </summary>
     private static string Sanitize(string value)
     {
-        var cleaned = new string(value.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c).ToArray());
+        const string unsafeChars = @"<>|:*?\/";
+
+        var cleaned = new string(value
+            .Where(c => c != '"')
+            .Select(c => unsafeChars.Contains(c) || char.IsControl(c) ? '_' : c)
+            .ToArray())
+            .Trim();
+
         return cleaned.Length > 120 ? cleaned[..120] : cleaned;
     }
 }
